@@ -48,7 +48,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .dashboard-heading h2 {
@@ -61,6 +61,32 @@
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 14px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filters button {
+            border: 1px solid #d1d5db;
+            background: white;
+            padding: 8px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .filters button:hover {
+            background: #f3f4f6;
+        }
+
+        .filters button.active {
+            background: #111827;
+            color: white;
+            border-color: #111827;
         }
 
         .enquiry-card {
@@ -103,10 +129,24 @@
         }
 
         .message {
-            margin: 0;
+            margin: 0 0 18px;
             line-height: 1.55;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
+        }
+
+        .status-actions {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 14px;
+            font-size: 14px;
+        }
+
+        .status-actions select {
+            margin-left: 6px;
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
         }
 
         .empty,
@@ -131,6 +171,10 @@
                 display: block;
                 margin-top: 6px;
             }
+
+            .status {
+                margin-left: 6px;
+            }
         }
     </style>
 </head>
@@ -145,17 +189,33 @@
     </header>
 
     <main>
+
         <div class="dashboard-heading">
             <h2>Enquiries</h2>
             <span id="enquiry-count">Loading...</span>
         </div>
 
+        <div class="filters">
+            <button data-filter="All" onclick="setFilter('All')">All</button>
+            <button data-filter="New" onclick="setFilter('New')">New</button>
+            <button data-filter="In Progress" onclick="setFilter('In Progress')">
+                In Progress
+            </button>
+            <button data-filter="Completed" onclick="setFilter('Completed')">
+                Completed
+            </button>
+        </div>
+
         <div id="enquiries">
             <div class="empty">Loading enquiries...</div>
         </div>
+
     </main>
 
     <script>
+        let currentFilter = "All";
+        let allEnquiries = [];
+
         async function loadEnquiries() {
             const container = document.getElementById("enquiries");
             const count = document.getElementById("enquiry-count");
@@ -167,42 +227,9 @@
                     throw new Error("Unable to retrieve enquiries");
                 }
 
-                const enquiries = await response.json();
+                allEnquiries = await response.json();
 
-                count.textContent =
-                    `${enquiries.length} ${enquiries.length === 1 ? "enquiry" : "enquiries"}`;
-
-                if (enquiries.length === 0) {
-                    container.innerHTML =
-                        '<div class="empty">No enquiries yet.</div>';
-                    return;
-                }
-
-                container.innerHTML = enquiries.map(enquiry => `
-                    <article class="enquiry-card">
-                        <div class="enquiry-header">
-                            <div>
-                                <span class="caller">${escapeHtml(enquiry.caller)}</span>
-                                <span class="status">${escapeHtml(enquiry.status || "New")}</span>
-                            </div>
-                            <span class="received">
-                                ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
-                            </span>
-                        </div>
-
-                        <p class="message">${escapeHtml(enquiry.message)}</p>
-                        <div class="status-actions">
-                            <label>
-                                Status:
-                                <select onchange="updateStatus('${enquiry._id}', this.value)">
-                                    <option value="New" ${(enquiry.status || "New") === "New" ? "selected" : ""}>New</option>
-                                    <option value="In Progress" ${enquiry.status === "In Progress" ? "selected" : ""}>In Progress</option>
-                                    <option value="Completed" ${enquiry.status === "Completed" ? "selected" : ""}>Completed</option>
-                                </select>
-                            </label>
-                        </div>
-                    </article>
-                `).join("");
+                setFilter(currentFilter);
 
             } catch (error) {
                 count.textContent = "Error";
@@ -210,26 +237,126 @@
                     '<div class="error">Unable to load enquiries.</div>';
             }
         }
-        async function updateStatus(id, status) {
-                try {
-                const response = await fetch(`/api/enquiries/${id}/status`, {
-                    method: "PATCH",
-                    headers: {
-                    "Content-Type": "application/json"
-                },
-                    body: JSON.stringify({ status })
-        });
 
-        if (!response.ok) {
-            throw new Error("Unable to update status");
+        function renderEnquiries(enquiries) {
+            const container = document.getElementById("enquiries");
+            const count = document.getElementById("enquiry-count");
+
+            count.textContent =
+                `${enquiries.length} ${enquiries.length === 1 ? "enquiry" : "enquiries"}`;
+
+            if (enquiries.length === 0) {
+                container.innerHTML =
+                    '<div class="empty">No enquiries in this view.</div>';
+                return;
+            }
+
+            container.innerHTML = enquiries.map(enquiry => {
+                const status = enquiry.status || "New";
+
+                return `
+                    <article class="enquiry-card">
+
+                        <div class="enquiry-header">
+                            <div>
+                                <span class="caller">
+                                    ${escapeHtml(enquiry.caller)}
+                                </span>
+
+                                <span class="status">
+                                    ${escapeHtml(status)}
+                                </span>
+                            </div>
+
+                            <span class="received">
+                                ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
+                            </span>
+                        </div>
+
+                        <p class="message">${escapeHtml(enquiry.message)}</p>
+
+                        <div class="status-actions">
+                            <label>
+                                Status:
+
+                                <select
+                                    onchange="updateStatus('${enquiry._id}', this.value)"
+                                >
+                                    <option
+                                        value="New"
+                                        ${status === "New" ? "selected" : ""}
+                                    >
+                                        New
+                                    </option>
+
+                                    <option
+                                        value="In Progress"
+                                        ${status === "In Progress" ? "selected" : ""}
+                                    >
+                                        In Progress
+                                    </option>
+
+                                    <option
+                                        value="Completed"
+                                        ${status === "Completed" ? "selected" : ""}
+                                    >
+                                        Completed
+                                    </option>
+                                </select>
+                            </label>
+                        </div>
+
+                    </article>
+                `;
+            }).join("");
         }
 
-        await loadEnquiries();
+        function setFilter(filter) {
+            currentFilter = filter;
 
-    } catch (error) {
-        alert("Unable to update enquiry status.");
-    }
-}
+            const filteredEnquiries =
+                filter === "All"
+                    ? allEnquiries
+                    : allEnquiries.filter(enquiry =>
+                        (enquiry.status || "New") === filter
+                    );
+
+            document
+                .querySelectorAll(".filters button")
+                .forEach(button => {
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.filter === filter
+                    );
+                });
+
+            renderEnquiries(filteredEnquiries);
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                const response = await fetch(
+                    `/api/enquiries/${id}/status`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ status })
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error("Unable to update status");
+                }
+
+                await loadEnquiries();
+
+            } catch (error) {
+                alert("Unable to update enquiry status.");
+            }
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replaceAll("&", "&amp;")
