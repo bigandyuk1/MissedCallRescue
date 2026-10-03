@@ -192,9 +192,14 @@
 
                         <p class="message">${escapeHtml(enquiry.message)}</p>
                         <div class="status-actions">
-                        <button onclick="updateStatus('${enquiry._id}', 'New')">New</button>
-                        <button onclick="updateStatus('${enquiry._id}', 'In Progress')">In Progress</button>
-                        <button onclick="updateStatus('${enquiry._id}', 'Completed')">Completed</button>
+                            <label>
+                                Status:
+                                <select onchange="updateStatus('${enquiry._id}', this.value)">
+                                    <option value="New" ${(enquiry.status || "New") === "New" ? "selected" : ""}>New</option>
+                                    <option value="In Progress" ${enquiry.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                                    <option value="Completed" ${enquiry.status === "Completed" ? "selected" : ""}>Completed</option>
+                                </select>
+                            </label>
                         </div>
                     </article>
                 `).join("");
