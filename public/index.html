@@ -128,25 +128,115 @@
             white-space: nowrap;
         }
 
+        .original-message {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 7px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .original-message-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
         .message {
-            margin: 0 0 18px;
+            margin: 0;
             line-height: 1.55;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
         }
 
-        .status-actions {
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .field label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #4b5563;
+        }
+
+        .field input,
+        .field textarea,
+        .status-actions select {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 9px 10px;
+            font-family: inherit;
+            font-size: 14px;
+            background: white;
+        }
+
+        .field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
             border-top: 1px solid #e5e7eb;
             padding-top: 14px;
+            margin-top: 16px;
+        }
+
+        .status-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
             font-size: 14px;
         }
 
         .status-actions select {
-            margin-left: 6px;
-            padding: 6px 8px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            background: white;
+            width: auto;
+            padding: 7px 9px;
+        }
+
+        .save-button {
+            border: 0;
+            background: #111827;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .save-button:hover {
+            background: #374151;
+        }
+
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .save-result {
+            margin-right: auto;
+            font-size: 13px;
+            color: #047857;
         }
 
         .empty,
@@ -158,7 +248,7 @@
             color: #6b7280;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
             header {
                 padding: 18px 20px;
             }
@@ -172,8 +262,17 @@
                 margin-top: 6px;
             }
 
-            .status {
-                margin-left: 6px;
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+
+            .card-footer {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
     </style>
@@ -198,12 +297,8 @@
         <div class="filters">
             <button data-filter="All" onclick="setFilter('All')">All</button>
             <button data-filter="New" onclick="setFilter('New')">New</button>
-            <button data-filter="In Progress" onclick="setFilter('In Progress')">
-                In Progress
-            </button>
-            <button data-filter="Completed" onclick="setFilter('Completed')">
-                Completed
-            </button>
+            <button data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button>
+            <button data-filter="Completed" onclick="setFilter('Completed')">Completed</button>
         </div>
 
         <div id="enquiries">
@@ -255,7 +350,7 @@
                 const status = enquiry.status || "New";
 
                 return `
-                    <article class="enquiry-card">
+                    <article class="enquiry-card" id="enquiry-${enquiry._id}">
 
                         <div class="enquiry-header">
                             <div>
@@ -273,37 +368,77 @@
                             </span>
                         </div>
 
-                        <p class="message">${escapeHtml(enquiry.message)}</p>
+                        <div class="original-message">
+                            <span class="original-message-label">Original SMS</span>
+                            <p class="message">${escapeHtml(enquiry.message)}</p>
+                        </div>
 
-                        <div class="status-actions">
-                            <label>
-                                Status:
+                        <div class="details-grid">
 
-                                <select
-                                    onchange="updateStatus('${enquiry._id}', this.value)"
+                            <div class="field">
+                                <label>Customer Name</label>
+                                <input
+                                    type="text"
+                                    class="customerName"
+                                    value="${escapeAttribute(enquiry.customerName || "")}"
                                 >
-                                    <option
-                                        value="New"
-                                        ${status === "New" ? "selected" : ""}
-                                    >
-                                        New
-                                    </option>
+                            </div>
 
-                                    <option
-                                        value="In Progress"
-                                        ${status === "In Progress" ? "selected" : ""}
-                                    >
-                                        In Progress
-                                    </option>
+                            <div class="field">
+                                <label>Vehicle Registration</label>
+                                <input
+                                    type="text"
+                                    class="vehicleRegistration"
+                                    value="${escapeAttribute(enquiry.vehicleRegistration || "")}"
+                                >
+                            </div>
 
-                                    <option
-                                        value="Completed"
-                                        ${status === "Completed" ? "selected" : ""}
-                                    >
-                                        Completed
-                                    </option>
+                            <div class="field">
+                                <label>Postcode</label>
+                                <input
+                                    type="text"
+                                    class="postcode"
+                                    value="${escapeAttribute(enquiry.postcode || "")}"
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label>Service Required</label>
+                                <input
+                                    type="text"
+                                    class="serviceRequired"
+                                    value="${escapeAttribute(enquiry.serviceRequired || "")}"
+                                >
+                            </div>
+
+                            <div class="field full-width">
+                                <label>Notes</label>
+                                <textarea class="notes">${escapeHtml(enquiry.notes || "")}</textarea>
+                            </div>
+
+                        </div>
+
+                        <div class="card-footer">
+
+                            <div class="status-actions">
+                                <label>Status:</label>
+
+                                <select onchange="updateStatus('${enquiry._id}', this.value)">
+                                    <option value="New" ${status === "New" ? "selected" : ""}>New</option>
+                                    <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
+                                    <option value="Completed" ${status === "Completed" ? "selected" : ""}>Completed</option>
                                 </select>
-                            </label>
+                            </div>
+
+                            <span class="save-result" id="save-result-${enquiry._id}"></span>
+
+                            <button
+                                class="save-button"
+                                onclick="saveEnquiry('${enquiry._id}', this)"
+                            >
+                                Save Details
+                            </button>
+
                         </div>
 
                     </article>
@@ -357,6 +492,49 @@
             }
         }
 
+        async function saveEnquiry(id, button) {
+            const card = document.getElementById(`enquiry-${id}`);
+            const result = document.getElementById(`save-result-${id}`);
+
+            const details = {
+                customerName: card.querySelector(".customerName").value.trim(),
+                vehicleRegistration: card.querySelector(".vehicleRegistration").value.trim(),
+                postcode: card.querySelector(".postcode").value.trim(),
+                serviceRequired: card.querySelector(".serviceRequired").value.trim(),
+                notes: card.querySelector(".notes").value.trim()
+            };
+
+            button.disabled = true;
+            button.textContent = "Saving...";
+            result.textContent = "";
+
+            try {
+                const response = await fetch(
+                    `/api/enquiries/${id}`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(details)
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error("Unable to save enquiry");
+                }
+
+                result.textContent = "Saved";
+
+                await loadEnquiries();
+
+            } catch (error) {
+                result.textContent = "Save failed";
+                button.disabled = false;
+                button.textContent = "Save Details";
+            }
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replaceAll("&", "&amp;")
@@ -364,6 +542,10 @@
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#039;");
+        }
+
+        function escapeAttribute(value) {
+            return escapeHtml(value);
         }
 
         loadEnquiries();
