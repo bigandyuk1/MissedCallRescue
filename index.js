@@ -175,6 +175,10 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
 // UPDATE ENQUIRY DETAILS
 // --------------------------------------------------
 
+// --------------------------------------------------
+// UPDATE ENQUIRY DETAILS
+// --------------------------------------------------
+
 app.patch("/api/enquiries/:id", async (req, res) => {
     try {
         const {
@@ -185,28 +189,29 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             notes
         } = req.body;
 
-        const enquiry = await Enquiry.findByIdAndUpdate(
-            req.params.id,
-            {
-                customerName,
-                vehicleRegistration,
-                postcode,
-                serviceRequired,
-                notes
-            },
-            {
-                returnDocument: "after",
-                runValidators: true
-            }
-        );
+        const existingEnquiry = await Enquiry.findById(req.params.id);
 
-        if (!enquiry) {
+        if (!existingEnquiry) {
             return res.status(404).json({
                 error: "Enquiry not found"
             });
         }
 
-        res.json(enquiry);
+        existingEnquiry.customerName = customerName;
+        existingEnquiry.vehicleRegistration = vehicleRegistration;
+        existingEnquiry.postcode = postcode;
+        existingEnquiry.serviceRequired = serviceRequired;
+        existingEnquiry.notes = notes;
+
+        // Saving a new enquiry means somebody has started working on it.
+        // Never change Completed enquiries back to In Progress.
+        if (existingEnquiry.status === "New") {
+            existingEnquiry.status = "In Progress";
+        }
+
+        await existingEnquiry.save();
+
+        res.json(existingEnquiry);
 
     } catch (error) {
         console.error(
