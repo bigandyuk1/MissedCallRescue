@@ -52,7 +52,7 @@ app.post("/incoming-call", async (req, res) => {
 
     try {
         const message = await client.messages.create({
-            body: "KEY CONTROL AUTO LOCKSMITHS: Thanks for calling. We're unable to answer right now. Please reply with your vehicle registration, postcode and what you need help with, and we'll get back to you shortly.",
+            body: "KEY CONTROL AUTO LOCKSMITHS: Sorry we missed your call. Please reply with your name, vehicle registration, postcode and what you need help with (for example: spare key, lost all keys or locked out). We'll get back to you shortly.",
             from: twilioNumber,
             to: caller
         });
@@ -75,9 +75,10 @@ app.post("/incoming-sms", async (req, res) => {
 
     const parsed = parseEnquiry(body);
 
-    const enquiry = {
+   const enquiry = {
     caller: from,
     message: body,
+    customerName: parsed.customerName,
     vehicleRegistration: parsed.vehicleRegistration,
     postcode: parsed.postcode,
     serviceRequired: parsed.serviceRequired,

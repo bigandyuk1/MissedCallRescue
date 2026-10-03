@@ -1,39 +1,24 @@
 function parseEnquiry(message) {
-    const text = String(message || "").trim();
+    const text = String(message || "")
+        .trim()
+        .replace(/\s+/g, " ");
 
     const result = {
+        customerName: "",
         vehicleRegistration: "",
         postcode: "",
         serviceRequired: ""
     };
-
-    // --------------------------------------------------
-    // UK VEHICLE REGISTRATION
-    // Example: WU73 YOT
-    // --------------------------------------------------
-
-    const registrationMatch = text.match(
-        /\b([A-Z]{2}\d{2}\s?[A-Z]{3})\b/i
-    );
-
-    if (registrationMatch) {
-        result.vehicleRegistration =
-            registrationMatch[1]
-                .toUpperCase()
-                .replace(
-                    /^([A-Z]{2}\d{2})([A-Z]{3})$/,
-                    "$1 $2"
-                );
-    }
 
 
     // --------------------------------------------------
     // UK POSTCODE
     // --------------------------------------------------
 
-    const postcodeMatch = text.match(
-        /\b(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/i
-    );
+    const postcodeRegex =
+        /\b(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/i;
+
+    const postcodeMatch = text.match(postcodeRegex);
 
     if (postcodeMatch) {
         const postcode = postcodeMatch[1]
@@ -46,12 +31,47 @@ function parseEnquiry(message) {
 
 
     // --------------------------------------------------
+    // UK VEHICLE REGISTRATION
+    // --------------------------------------------------
+
+    const registrationPatterns = [
+
+        // Current format: AB12 CDE
+        /\b[A-Z]{2}\d{2}\s?[A-Z]{3}\b/i,
+
+        // Prefix format: A123 BCD
+        /\b[A-Z]\d{1,3}\s?[A-Z]{3}\b/i,
+
+        // Suffix format: ABC 123A
+        /\b[A-Z]{3}\s?\d{1,3}[A-Z]\b/i,
+
+        // Dateless/private: V8 OVM, 1 ABC, ABC 1
+        /\b[A-Z]{1,3}\s?\d{1,4}\s?[A-Z]{1,3}\b/i,
+        /\b\d{1,4}\s?[A-Z]{1,3}\b/i,
+        /\b[A-Z]{1,3}\s?\d{1,4}\b/i
+    ];
+
+    for (const pattern of registrationPatterns) {
+        const match = text.match(pattern);
+
+        if (match) {
+            result.vehicleRegistration =
+                match[0]
+                    .toUpperCase()
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            break;
+        }
+    }
+
+
+    // --------------------------------------------------
     // SERVICE REQUIRED
     // --------------------------------------------------
 
     const lowerText = text.toLowerCase();
 
-    // All keys lost
     if (
         /\b(lost|lose|lost my|lost all)\b.*\b(keys?|key)\b/.test(lowerText) ||
         /\b(all keys? lost|no keys?|no key)\b/.test(lowerText)
@@ -59,7 +79,6 @@ function parseEnquiry(message) {
         result.serviceRequired = "All keys lost";
     }
 
-    // Keys locked inside vehicle
     else if (
         /\b(keys?|key)\b.*\b(inside|in the car|locked in|locked inside)\b/.test(lowerText) ||
         /\blocked out\b/.test(lowerText)
@@ -67,7 +86,6 @@ function parseEnquiry(message) {
         result.serviceRequired = "Vehicle lockout";
     }
 
-    // Spare / additional key
     else if (
         /\b(spare|additional|second|extra)\b.*\b(keys?|key)\b/.test(lowerText) ||
         /\b(keys?|key)\b.*\b(spare|additional|second|extra)\b/.test(lowerText)
@@ -75,7 +93,6 @@ function parseEnquiry(message) {
         result.serviceRequired = "Spare key";
     }
 
-    // Broken / damaged key
     else if (
         /\b(broken|damaged|snapped)\b.*\b(keys?|key)\b/.test(lowerText) ||
         /\b(keys?|key)\b.*\b(broken|damaged|snapped)\b/.test(lowerText)
@@ -83,12 +100,63 @@ function parseEnquiry(message) {
         result.serviceRequired = "Broken or damaged key";
     }
 
-    // Remote / buttons not working
     else if (
         /\b(remote|fob|buttons?)\b.*\b(not working|stopped working|faulty|broken)\b/.test(lowerText)
     ) {
         result.serviceRequired = "Remote / key fob problem";
     }
+
+
+    // --------------------------------------------------
+    // CUSTOMER NAME
+    //
+    // Remove the things we already understand from the
+    // message, then inspect what remains at the beginning.
+    // --------------------------------------------------
+
+    let remainingText = text;
+
+    if (postcodeMatch) {
+        remainingText =
+            remainingText.replace(postcodeMatch[0], " ");
+    }
+
+    if (result.vehicleRegistration) {
+        const escapedRegistration =
+            result.vehicleRegistration.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
+        remainingText =
+            remainingText.replace(
+                new RegExp(escapedRegistration, "i"),
+                " "
+            );
+    }
+
+    // Remove common service descriptions.
+    remainingText = remainingText
+        .replace(/\b(lost all (?:my )?keys?|all keys? lost)\b/gi, " ")
+        .replace(/\b(lost (?:my )?keys?)\b/gi, " ")
+        .replace(/\b(no keys?|no key)\b/gi, " ")
+        .replace(/\b(need|want|require|looking for)\s+(?:a\s+)?spare\s+key\b/gi, " ")
+        .replace(/\b(spare key|additional key|second key|extra key)\b/gi, " ")
+        .replace(/\b(keys? locked (?:in|inside)(?: the)? car)\b/gi, " ")
+        .replace(/\b(locked out)\b/gi, " ")
+        .replace(/\b(broken key|damaged key|snapped key)\b/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    // Whatever sensible alphabetic text remains is a
+    // candidate customer name.
+    if (
+        remainingText &&
+        /^[A-Za-z][A-Za-z' -]{1,49}$/.test(remainingText)
+    ) {
+        result.customerName = remainingText.trim();
+    }
+
 
     return result;
 }
