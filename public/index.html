@@ -364,7 +364,10 @@
                             </div>
 
                             <span class="received">
-                                ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
+                                Received: ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
+                                ${enquiry.updatedAt
+                                ? `<br>Updated: ${new Date(enquiry.updatedAt).toLocaleString("en-GB")}`
+                                : ""}
                             </span>
                         </div>
 
