@@ -5,19 +5,47 @@ const enquirySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+
     message: {
         type: String,
         required: true
     },
+
+    customerName: {
+        type: String,
+        default: ""
+    },
+
+    vehicleRegistration: {
+        type: String,
+        default: ""
+    },
+
+    postcode: {
+        type: String,
+        default: ""
+    },
+
+    serviceRequired: {
+        type: String,
+        default: ""
+    },
+
+    notes: {
+        type: String,
+        default: ""
+    },
+
+    status: {
+        type: String,
+        enum: ["New", "In Progress", "Completed"],
+        default: "New"
+    },
+
     receivedAt: {
         type: Date,
         default: Date.now
-    },
-    status: {
-    type: String,
-    enum: ["New", "In Progress", "Completed"],
-    default: "New"
-}
+    }
 });
 
 module.exports = mongoose.model("Enquiry", enquirySchema);
