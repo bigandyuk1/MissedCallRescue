@@ -10,6 +10,7 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch(error => console.error("[DATABASE ERROR]", error.message));
 
 const app = express();
+app.use(express.static("public"));
 const PORT = 3100;
 
 app.use(express.urlencoded({ extended: false }));

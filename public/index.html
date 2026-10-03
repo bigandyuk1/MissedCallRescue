@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MissedCall Rescue</title>
+</head>
+
+<body>
+
+    <header>
+        <h1>MissedCall Rescue</h1>
+        <p>Enquiry Dashboard</p>
+    </header>
+
+    <main>
+        <h2>Enquiries</h2>
+
+        <div id="enquiries">
+            Loading enquiries...
+        </div>
+    </main>
+
+    <script>
+        async function loadEnquiries() {
+            try {
+                const response = await fetch("/api/enquiries");
+                const enquiries = await response.json();
+
+                const container = document.getElementById("enquiries");
+
+                if (enquiries.length === 0) {
+                    container.innerHTML = "<p>No enquiries yet.</p>";
+                    return;
+                }
+
+                container.innerHTML = enquiries.map(enquiry => `
+                    <div>
+                        <strong>${enquiry.caller}</strong>
+                        <p>${enquiry.message}</p>
+                        <small>${new Date(enquiry.receivedAt).toLocaleString()}</small>
+                        <hr>
+                    </div>
+                `).join("");
+
+            } catch (error) {
+                document.getElementById("enquiries").innerHTML =
+                    "<p>Unable to load enquiries.</p>";
+            }
+        }
+
+        loadEnquiries();
+    </script>
+
+</body>
+</html>
