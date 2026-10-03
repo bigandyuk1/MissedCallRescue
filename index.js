@@ -4,6 +4,7 @@ const express = require("express");
 const twilio = require("twilio");
 const mongoose = require("mongoose");
 const Enquiry = require("./enquiry");
+const parseEnquiry = require("./parse-enquiry");
 
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("[DATABASE] Connected to MongoDB"))
@@ -72,10 +73,14 @@ app.post("/incoming-sms", async (req, res) => {
     const from = req.body.From || "Unknown";
     const body = req.body.Body || "";
 
+    const parsed = parseEnquiry(body);
+
     const enquiry = {
-        caller: from,
-        message: body,
-        receivedAt: new Date()
+    caller: from,
+    message: body,
+    vehicleRegistration: parsed.vehicleRegistration,
+    postcode: parsed.postcode,
+    receivedAt: new Date()
     };
 
     console.log("[ENQUIRY]", enquiry);
