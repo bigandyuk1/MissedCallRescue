@@ -89,6 +89,16 @@ app.get("/", (req, res) => {
     res.send("MissedCall Rescue is running.");
 });
 
+app.get("/api/enquiries", async (req, res) => {
+    try {
+        const enquiries = await Enquiry.find().sort({ receivedAt: -1 });
+        res.json(enquiries);
+    } catch (error) {
+        console.error("[ENQUIRIES ERROR]", error.message);
+        res.status(500).json({ error: "Unable to retrieve enquiries" });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`MissedCall Rescue listening on port ${PORT}`);
 });
