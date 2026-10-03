@@ -80,6 +80,7 @@ app.post("/incoming-sms", async (req, res) => {
     message: body,
     vehicleRegistration: parsed.vehicleRegistration,
     postcode: parsed.postcode,
+    serviceRequired: parsed.serviceRequired,
     receivedAt: new Date()
     };
 
