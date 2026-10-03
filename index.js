@@ -10,7 +10,10 @@ mongoose.connect(process.env.MONGODB_URI)
     .catch(error => console.error("[DATABASE ERROR]", error.message));
 
 const app = express();
+
+app.use(express.json());
 app.use(express.static("public"));
+
 const PORT = 3100;
 
 app.use(express.urlencoded({ extended: false }));
@@ -97,6 +100,33 @@ app.get("/api/enquiries", async (req, res) => {
     } catch (error) {
         console.error("[ENQUIRIES ERROR]", error.message);
         res.status(500).json({ error: "Unable to retrieve enquiries" });
+    }
+});
+
+app.patch("/api/enquiries/:id/status", async (req, res) => {
+    try {
+        const allowedStatuses = ["New", "In Progress", "Completed"];
+        const { status } = req.body;
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({ error: "Invalid enquiry status" });
+        }
+
+        const enquiry = await Enquiry.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (!enquiry) {
+            return res.status(404).json({ error: "Enquiry not found" });
+        }
+
+        res.json(enquiry);
+
+    } catch (error) {
+        console.error("[STATUS UPDATE ERROR]", error.message);
+        res.status(500).json({ error: "Unable to update enquiry status" });
     }
 });
 

@@ -85,6 +85,17 @@
             font-size: 17px;
         }
 
+        .status {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 4px 9px;
+            border-radius: 12px;
+            background: #dbeafe;
+            color: #1e40af;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
         .received {
             color: #6b7280;
             font-size: 13px;
@@ -170,13 +181,21 @@
                 container.innerHTML = enquiries.map(enquiry => `
                     <article class="enquiry-card">
                         <div class="enquiry-header">
-                            <span class="caller">${escapeHtml(enquiry.caller)}</span>
+                            <div>
+                                <span class="caller">${escapeHtml(enquiry.caller)}</span>
+                                <span class="status">${escapeHtml(enquiry.status || "New")}</span>
+                            </div>
                             <span class="received">
                                 ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
                             </span>
                         </div>
 
                         <p class="message">${escapeHtml(enquiry.message)}</p>
+                        <div class="status-actions">
+                        <button onclick="updateStatus('${enquiry._id}', 'New')">New</button>
+                        <button onclick="updateStatus('${enquiry._id}', 'In Progress')">In Progress</button>
+                        <button onclick="updateStatus('${enquiry._id}', 'Completed')">Completed</button>
+                        </div>
                     </article>
                 `).join("");
 
@@ -186,7 +205,26 @@
                     '<div class="error">Unable to load enquiries.</div>';
             }
         }
+        async function updateStatus(id, status) {
+                try {
+                const response = await fetch(`/api/enquiries/${id}/status`, {
+                    method: "PATCH",
+                    headers: {
+                    "Content-Type": "application/json"
+                },
+                    body: JSON.stringify({ status })
+        });
 
+        if (!response.ok) {
+            throw new Error("Unable to update status");
+        }
+
+        await loadEnquiries();
+
+    } catch (error) {
+        alert("Unable to update enquiry status.");
+    }
+}
         function escapeHtml(value) {
             return String(value)
                 .replaceAll("&", "&amp;")
