@@ -554,3 +554,59 @@ When resuming this project in a future ChatGPT conversation:
 READ THIS FILE FIRST.
 
 Do not reconstruct the project from assumptions or outdated memory.
+
+## Permanent Cloudflare Tunnel - 4 October 2026
+
+MissedCall Rescue has now been moved from the temporary Cloudflare Quick Tunnel to a permanent named Cloudflare Tunnel.
+
+### Domain
+
+- Domain: `missedcallrescue.uk`
+- Public application hostname: `api.missedcallrescue.uk`
+- KeyControl DNS and `keycontrolauto.co.uk` were not changed.
+
+### Cloudflare Tunnel
+
+- Tunnel name: `missedcall-rescue`
+- Tunnel installed as a Windows service.
+- Tunnel status confirmed Healthy.
+- Published application:
+  - `https://api.missedcallrescue.uk`
+  - Service: `http://localhost:3100`
+
+The dashboard was successfully accessed through:
+
+`https://api.missedcallrescue.uk`
+
+### Twilio Webhooks
+
+The temporary `trycloudflare.com` URLs have been replaced.
+
+Inbound SMS:
+
+`https://api.missedcallrescue.uk/incoming-sms`
+
+Voice / TwiML App:
+
+`https://api.missedcallrescue.uk/incoming-call`
+
+Both use HTTP POST.
+
+### End-to-End Tests
+
+Inbound SMS was tested successfully through the permanent hostname and created an enquiry in MongoDB.
+
+A full live call test was also successful:
+
+Customer call
+→ KeyControl EE number
+→ unanswered conditional forwarding
+→ Twilio
+→ Cloudflare named tunnel
+→ MissedCall Rescue
+→ voice response
+→ rescue SMS
+
+Customer SMS replies also successfully reach MissedCall Rescue through the permanent Cloudflare endpoint and are stored in MongoDB.
+
+The temporary Cloudflare Quick Tunnel is no longer required for the Twilio voice or SMS webhooks.
