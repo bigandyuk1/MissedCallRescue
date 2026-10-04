@@ -9,7 +9,6 @@ const parseEnquiry = require("./parse-enquiry");
 const businessConfig = require("./business-config");
 const { getBusinessByTwilioNumber } = require("./businesses");
 
-
 const app = express();
 const PORT = 3100;
 
@@ -40,7 +39,6 @@ app.use(express.static("public"));
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioNumber = businessConfig.twilioNumber;
 
 const client = twilio(accountSid, authToken);
 
@@ -52,10 +50,13 @@ const client = twilio(accountSid, authToken);
 app.post("/incoming-call", async (req, res) => {
     const caller = req.body.From || "Unknown caller";
     const calledNumber = req.body.To;
+
     const business = getBusinessByTwilioNumber(calledNumber);
     const activeBusiness = business || businessConfig;
 
-    console.log(`[MISSED CALL] Incoming call from: ${caller}`);
+    console.log(
+        `[MISSED CALL] ${activeBusiness.businessId} - ${caller}`
+    );
 
     const response = new twilio.twiml.VoiceResponse();
 
@@ -77,12 +78,16 @@ app.post("/incoming-call", async (req, res) => {
         console.log(
             "[SMS] No caller number available - SMS not sent."
         );
+
         return;
     }
 
     try {
         const message = await client.messages.create({
-            body: `${activeBusiness.businessName}: ${activeBusiness.rescueMessage}`,
+            body:
+                `${activeBusiness.businessName}: ` +
+                `${activeBusiness.rescueMessage}`,
+
             from: activeBusiness.twilioNumber,
             to: caller
         });
@@ -107,6 +112,7 @@ app.post("/incoming-sms", async (req, res) => {
     const from = req.body.From || "Unknown";
     const body = req.body.Body || "";
     const receivedNumber = req.body.To;
+
     const business = getBusinessByTwilioNumber(receivedNumber);
     const activeBusiness = business || businessConfig;
 
@@ -128,8 +134,7 @@ app.post("/incoming-sms", async (req, res) => {
     console.log(`[SMS BODY] ${body}`);
 
     try {
-        const savedEnquiry =
-            await Enquiry.create(enquiry);
+        const savedEnquiry = await Enquiry.create(enquiry);
 
         console.log(
             `[ENQUIRY SAVED] ${savedEnquiry._id}`
@@ -142,8 +147,7 @@ app.post("/incoming-sms", async (req, res) => {
         );
     }
 
-    const response =
-        new twilio.twiml.MessagingResponse();
+    const response = new twilio.twiml.MessagingResponse();
 
     res.type("text/xml");
     res.send(response.toString());
@@ -156,7 +160,12 @@ app.post("/incoming-sms", async (req, res) => {
 
 app.get("/api/enquiries", async (req, res) => {
     try {
-        const businessId = req.query.businessId || "keycontrol";
+        const businessId =
+            req.query.businessId || "keycontrol";
+
+        // Older KeyControl enquiries may not physically contain
+        // businessId in MongoDB. Only KeyControl is allowed to
+        // inherit those legacy records.
 
         const filter =
             businessId === "keycontrol"
@@ -166,7 +175,9 @@ app.get("/api/enquiries", async (req, res) => {
                         { businessId: { $exists: false } }
                     ]
                 }
-                : { businessId: businessId };
+                : {
+                    businessId: businessId
+                };
 
         const enquiries = await Enquiry.find(filter)
             .sort({ receivedAt: -1 });
@@ -192,6 +203,9 @@ app.get("/api/enquiries", async (req, res) => {
 
 app.patch("/api/enquiries/:id/status", async (req, res) => {
     try {
+        const businessId =
+            req.query.businessId || "keycontrol";
+
         const allowedStatuses = [
             "New",
             "In Progress",
@@ -206,15 +220,19 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
             });
         }
 
-        const enquiry =
-            await Enquiry.findByIdAndUpdate(
-                req.params.id,
-                { status },
-                {
-                    returnDocument: "after",
-                    runValidators: true
-                }
-            );
+        const enquiry = await Enquiry.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                businessId: businessId
+            },
+            {
+                status
+            },
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        );
 
         if (!enquiry) {
             return res.status(404).json({
@@ -243,6 +261,9 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
 
 app.patch("/api/enquiries/:id", async (req, res) => {
     try {
+        const businessId =
+            req.query.businessId || "keycontrol";
+
         const {
             customerName,
             vehicleRegistration,
@@ -251,8 +272,10 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             notes
         } = req.body;
 
-        const existingEnquiry =
-            await Enquiry.findById(req.params.id);
+        const existingEnquiry = await Enquiry.findOne({
+            _id: req.params.id,
+            businessId: businessId
+        });
 
         if (!existingEnquiry) {
             return res.status(404).json({
@@ -308,8 +331,13 @@ app.patch("/api/enquiries/:id", async (req, res) => {
 
 app.post("/api/enquiries/:id/reparse", async (req, res) => {
     try {
-        const enquiry =
-            await Enquiry.findById(req.params.id);
+        const businessId =
+            req.query.businessId || "keycontrol";
+
+        const enquiry = await Enquiry.findOne({
+            _id: req.params.id,
+            businessId: businessId
+        });
 
         if (!enquiry) {
             return res.status(404).json({
@@ -317,8 +345,7 @@ app.post("/api/enquiries/:id/reparse", async (req, res) => {
             });
         }
 
-        const parsed =
-            parseEnquiry(enquiry.message);
+        const parsed = parseEnquiry(enquiry.message);
 
         enquiry.customerName =
             parsed.customerName;
@@ -338,6 +365,7 @@ app.post("/api/enquiries/:id/reparse", async (req, res) => {
         // - status
         // - caller
         // - received time
+        // - business ownership
 
         await enquiry.save();
 
