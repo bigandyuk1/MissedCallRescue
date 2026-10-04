@@ -67,6 +67,7 @@ app.post("/incoming-call", async (req, res) => {
         activeBusiness.voiceMessage
     );
 
+    response.pause({ length: 1 });
     response.hangup();
 
     res.type("text/xml");
@@ -82,7 +83,7 @@ app.post("/incoming-call", async (req, res) => {
     try {
         const message = await client.messages.create({
             body: `${activeBusiness.businessName}: ${activeBusiness.rescueMessage}`,
-            from: twilioNumber,
+            from: activeBusiness.twilioNumber,
             to: caller
         });
 
@@ -105,12 +106,16 @@ app.post("/incoming-call", async (req, res) => {
 app.post("/incoming-sms", async (req, res) => {
     const from = req.body.From || "Unknown";
     const body = req.body.Body || "";
+    const receivedNumber = req.body.To;
+    const business = getBusinessByTwilioNumber(receivedNumber);
+    const activeBusiness = business || businessConfig;
 
     const parsed = parseEnquiry(body);
 
     const enquiry = {
         caller: from,
         message: body,
+        businessId: activeBusiness.businessId,
         customerName: parsed.customerName,
         vehicleRegistration: parsed.vehicleRegistration,
         postcode: parsed.postcode,

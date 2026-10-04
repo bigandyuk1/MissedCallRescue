@@ -11,6 +11,12 @@ const enquirySchema = new mongoose.Schema({
         required: true
     },
 
+    businessId: {
+    type: String,
+    required: true,
+    default: "keycontrol"
+},
+
     customerName: {
         type: String,
         default: ""
