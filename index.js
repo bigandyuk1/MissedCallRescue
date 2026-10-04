@@ -156,7 +156,19 @@ app.post("/incoming-sms", async (req, res) => {
 
 app.get("/api/enquiries", async (req, res) => {
     try {
-        const enquiries = await Enquiry.find()
+        const businessId = req.query.businessId || "keycontrol";
+
+        const filter =
+            businessId === "keycontrol"
+                ? {
+                    $or: [
+                        { businessId: "keycontrol" },
+                        { businessId: { $exists: false } }
+                    ]
+                }
+                : { businessId: businessId };
+
+        const enquiries = await Enquiry.find(filter)
             .sort({ receivedAt: -1 });
 
         res.json(enquiries);
