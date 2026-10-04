@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const Enquiry = require("./enquiry");
 const parseEnquiry = require("./parse-enquiry");
 const businessConfig = require("./business-config");
+const { getBusinessByTwilioNumber } = require("./businesses");
 
 
 const app = express();
@@ -39,7 +40,7 @@ app.use(express.static("public"));
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+const twilioNumber = businessConfig.twilioNumber;
 
 const client = twilio(accountSid, authToken);
 
@@ -50,6 +51,9 @@ const client = twilio(accountSid, authToken);
 
 app.post("/incoming-call", async (req, res) => {
     const caller = req.body.From || "Unknown caller";
+    const calledNumber = req.body.To;
+    const business = getBusinessByTwilioNumber(calledNumber);
+    const activeBusiness = business || businessConfig;
 
     console.log(`[MISSED CALL] Incoming call from: ${caller}`);
 
@@ -60,7 +64,7 @@ app.post("/incoming-call", async (req, res) => {
             voice: "Polly.Amy",
             language: "en-GB"
         },
-        businessConfig.voiceMessage
+        activeBusiness.voiceMessage
     );
 
     response.hangup();
@@ -77,7 +81,7 @@ app.post("/incoming-call", async (req, res) => {
 
     try {
         const message = await client.messages.create({
-            body: `${businessConfig.businessName}: ${businessConfig.rescueMessage}`,
+            body: `${activeBusiness.businessName}: ${activeBusiness.rescueMessage}`,
             from: twilioNumber,
             to: caller
         });

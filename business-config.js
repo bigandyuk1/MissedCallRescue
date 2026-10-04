@@ -1,5 +1,7 @@
 const businessConfig = {
+    businessId: "keycontrol",
     businessName: "KEY CONTROL AUTO LOCKSMITHS",
+    twilioNumber: process.env.TWILIO_PHONE_NUMBER,
 
     voiceMessage:
         "Thanks for calling. We can't answer your call right now. We'll send you a text message shortly.",
