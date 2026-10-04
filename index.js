@@ -60,7 +60,7 @@ app.post("/incoming-call", async (req, res) => {
             voice: "Polly.Amy",
             language: "en-GB"
         },
-        "Thanks for calling. We can't answer your call right now. We'll send you a text message shortly."
+        businessConfig.voiceMessage
     );
 
     response.hangup();
