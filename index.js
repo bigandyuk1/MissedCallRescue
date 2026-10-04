@@ -3,19 +3,38 @@ require("dotenv").config();
 const express = require("express");
 const twilio = require("twilio");
 const mongoose = require("mongoose");
+
 const Enquiry = require("./enquiry");
 const parseEnquiry = require("./parse-enquiry");
 
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("[DATABASE] Connected to MongoDB"))
-    .catch(error => console.error("[DATABASE ERROR]", error.message));
 
 const app = express();
 const PORT = 3100;
 
+
+// --------------------------------------------------
+// DATABASE
+// --------------------------------------------------
+
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log("[DATABASE] Connected to MongoDB"))
+    .catch(error =>
+        console.error("[DATABASE ERROR]", error.message)
+    );
+
+
+// --------------------------------------------------
+// MIDDLEWARE
+// --------------------------------------------------
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static("public"));
+
+
+// --------------------------------------------------
+// TWILIO
+// --------------------------------------------------
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -36,7 +55,10 @@ app.post("/incoming-call", async (req, res) => {
     const response = new twilio.twiml.VoiceResponse();
 
     response.say(
-        { voice: "Polly.Amy", language: "en-GB" },
+        {
+            voice: "Polly.Amy",
+            language: "en-GB"
+        },
         "Thanks for calling. We can't answer your call right now. We'll send you a text message shortly."
     );
 
@@ -46,21 +68,31 @@ app.post("/incoming-call", async (req, res) => {
     res.send(response.toString());
 
     if (caller === "Unknown caller") {
-        console.log("[SMS] No caller number available - SMS not sent.");
+        console.log(
+            "[SMS] No caller number available - SMS not sent."
+        );
         return;
     }
 
     try {
         const message = await client.messages.create({
-            body: "KEY CONTROL AUTO LOCKSMITHS: Sorry we missed your call. Please reply with your name, vehicle registration, postcode and what you need help with (for example: spare key, lost all keys or locked out). We'll get back to you shortly.",
+            body:
+                "KEY CONTROL AUTO LOCKSMITHS: Sorry we missed your call. " +
+                "Please reply with your name, vehicle registration, postcode " +
+                "and what you need help with (for example: spare key, lost all " +
+                "keys or locked out). We'll get back to you shortly.",
             from: twilioNumber,
             to: caller
         });
 
-        console.log(`[SMS SENT] ${message.sid} -> ${caller}`);
+        console.log(
+            `[SMS SENT] ${message.sid} -> ${caller}`
+        );
 
     } catch (error) {
-        console.error(`[SMS FAILED] ${error.code || ""} ${error.message}`);
+        console.error(
+            `[SMS FAILED] ${error.code || ""} ${error.message}`
+        );
     }
 });
 
@@ -75,14 +107,14 @@ app.post("/incoming-sms", async (req, res) => {
 
     const parsed = parseEnquiry(body);
 
-   const enquiry = {
-    caller: from,
-    message: body,
-    customerName: parsed.customerName,
-    vehicleRegistration: parsed.vehicleRegistration,
-    postcode: parsed.postcode,
-    serviceRequired: parsed.serviceRequired,
-    receivedAt: new Date()
+    const enquiry = {
+        caller: from,
+        message: body,
+        customerName: parsed.customerName,
+        vehicleRegistration: parsed.vehicleRegistration,
+        postcode: parsed.postcode,
+        serviceRequired: parsed.serviceRequired,
+        receivedAt: new Date()
     };
 
     console.log("[ENQUIRY]", enquiry);
@@ -90,14 +122,22 @@ app.post("/incoming-sms", async (req, res) => {
     console.log(`[SMS BODY] ${body}`);
 
     try {
-        const savedEnquiry = await Enquiry.create(enquiry);
-        console.log(`[ENQUIRY SAVED] ${savedEnquiry._id}`);
+        const savedEnquiry =
+            await Enquiry.create(enquiry);
+
+        console.log(
+            `[ENQUIRY SAVED] ${savedEnquiry._id}`
+        );
 
     } catch (error) {
-        console.error("[ENQUIRY SAVE FAILED]", error.message);
+        console.error(
+            "[ENQUIRY SAVE FAILED]",
+            error.message
+        );
     }
 
-    const response = new twilio.twiml.MessagingResponse();
+    const response =
+        new twilio.twiml.MessagingResponse();
 
     res.type("text/xml");
     res.send(response.toString());
@@ -105,7 +145,7 @@ app.post("/incoming-sms", async (req, res) => {
 
 
 // --------------------------------------------------
-// ENQUIRY API
+// GET ENQUIRIES
 // --------------------------------------------------
 
 app.get("/api/enquiries", async (req, res) => {
@@ -116,7 +156,10 @@ app.get("/api/enquiries", async (req, res) => {
         res.json(enquiries);
 
     } catch (error) {
-        console.error("[ENQUIRIES ERROR]", error.message);
+        console.error(
+            "[ENQUIRIES ERROR]",
+            error.message
+        );
 
         res.status(500).json({
             error: "Unable to retrieve enquiries"
@@ -124,6 +167,10 @@ app.get("/api/enquiries", async (req, res) => {
     }
 });
 
+
+// --------------------------------------------------
+// UPDATE ENQUIRY STATUS
+// --------------------------------------------------
 
 app.patch("/api/enquiries/:id/status", async (req, res) => {
     try {
@@ -141,14 +188,15 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
             });
         }
 
-        const enquiry = await Enquiry.findByIdAndUpdate(
-            req.params.id,
-            { status },
-            {
-                returnDocument: "after",
-                runValidators: true
-            }
-        );
+        const enquiry =
+            await Enquiry.findByIdAndUpdate(
+                req.params.id,
+                { status },
+                {
+                    returnDocument: "after",
+                    runValidators: true
+                }
+            );
 
         if (!enquiry) {
             return res.status(404).json({
@@ -175,10 +223,6 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
 // UPDATE ENQUIRY DETAILS
 // --------------------------------------------------
 
-// --------------------------------------------------
-// UPDATE ENQUIRY DETAILS
-// --------------------------------------------------
-
 app.patch("/api/enquiries/:id", async (req, res) => {
     try {
         const {
@@ -189,7 +233,8 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             notes
         } = req.body;
 
-        const existingEnquiry = await Enquiry.findById(req.params.id);
+        const existingEnquiry =
+            await Enquiry.findById(req.params.id);
 
         if (!existingEnquiry) {
             return res.status(404).json({
@@ -197,14 +242,27 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             });
         }
 
-        existingEnquiry.customerName = customerName;
-        existingEnquiry.vehicleRegistration = vehicleRegistration;
-        existingEnquiry.postcode = postcode;
-        existingEnquiry.serviceRequired = serviceRequired;
-        existingEnquiry.notes = notes;
+        existingEnquiry.customerName =
+            customerName;
 
-        // Saving a new enquiry means somebody has started working on it.
-        // Never change Completed enquiries back to In Progress.
+        existingEnquiry.vehicleRegistration =
+            vehicleRegistration;
+
+        existingEnquiry.postcode =
+            postcode;
+
+        existingEnquiry.serviceRequired =
+            serviceRequired;
+
+        existingEnquiry.notes =
+            notes;
+
+        // Once somebody works on a new enquiry,
+        // automatically move it into In Progress.
+        //
+        // Completed enquiries are never reopened
+        // simply because their details were edited.
+
         if (existingEnquiry.status === "New") {
             existingEnquiry.status = "In Progress";
         }
@@ -221,6 +279,64 @@ app.patch("/api/enquiries/:id", async (req, res) => {
 
         res.status(500).json({
             error: "Unable to update enquiry"
+        });
+    }
+});
+
+
+// --------------------------------------------------
+// RE-PARSE ENQUIRY
+// --------------------------------------------------
+
+app.post("/api/enquiries/:id/reparse", async (req, res) => {
+    try {
+        const enquiry =
+            await Enquiry.findById(req.params.id);
+
+        if (!enquiry) {
+            return res.status(404).json({
+                error: "Enquiry not found"
+            });
+        }
+
+        const parsed =
+            parseEnquiry(enquiry.message);
+
+        enquiry.customerName =
+            parsed.customerName;
+
+        enquiry.vehicleRegistration =
+            parsed.vehicleRegistration;
+
+        enquiry.postcode =
+            parsed.postcode;
+
+        enquiry.serviceRequired =
+            parsed.serviceRequired;
+
+        // Deliberately preserve:
+        // - original SMS
+        // - notes
+        // - status
+        // - caller
+        // - received time
+
+        await enquiry.save();
+
+        console.log(
+            `[ENQUIRY RE-PARSED] ${enquiry._id}`
+        );
+
+        res.json(enquiry);
+
+    } catch (error) {
+        console.error(
+            "[ENQUIRY RE-PARSE ERROR]",
+            error.message
+        );
+
+        res.status(500).json({
+            error: "Unable to re-parse enquiry"
         });
     }
 });
