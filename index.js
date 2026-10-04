@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 
 const Enquiry = require("./enquiry");
 const parseEnquiry = require("./parse-enquiry");
+const businessConfig = require("./business-config");
 
 
 const app = express();
@@ -76,11 +77,7 @@ app.post("/incoming-call", async (req, res) => {
 
     try {
         const message = await client.messages.create({
-            body:
-                "KEY CONTROL AUTO LOCKSMITHS: Sorry we missed your call. " +
-                "Please reply with your name, vehicle registration, postcode " +
-                "and what you need help with (for example: spare key, lost all " +
-                "keys or locked out). We'll get back to you shortly.",
+            body: `${businessConfig.businessName}: ${businessConfig.rescueMessage}`,
             from: twilioNumber,
             to: caller
         });
