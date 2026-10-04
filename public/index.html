@@ -254,6 +254,26 @@
             background: #374151;
         }
 
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+            color: white;
+            border: 0;
+            padding: 9px 16px;
+            border-radius: 7px;
+            font-family: inherit;
+            font-size: 13px;
+            line-height: normal;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .copy-button:hover {
+            background: #374151;
+        }
+
         .save-result {
             margin-right: auto;
             font-size: 13px;
@@ -465,6 +485,12 @@
                             <a href="tel:${enquiry.caller}" class="call-button">
                             📞 Call Customer
                             </a>
+                            <button
+                                class="copy-button"
+                                onclick="copyNumber('${enquiry.caller}', this)"
+                            >
+                                Copy Number
+                            </button>
 
                         </div>
 
@@ -494,6 +520,21 @@
 
             renderEnquiries(filteredEnquiries);
         }
+
+        async function copyNumber(number, button) {
+    try {
+        await navigator.clipboard.writeText(number);
+
+        const originalText = button.textContent;
+        button.textContent = "Copied!";
+
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 1500);
+    } catch (error) {
+        console.error("Unable to copy number:", error);
+    }
+}
 
         async function updateStatus(id, status) {
             try {
