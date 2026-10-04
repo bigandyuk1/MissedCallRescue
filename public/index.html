@@ -233,6 +233,27 @@
             cursor: default;
         }
 
+        .call-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #111827;
+            color: white;
+            border: 0;
+            padding: 9px 16px;
+            border-radius: 7px;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13px;
+            line-height: normal;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .call-button:hover {
+            background: #374151;
+        }
+
         .save-result {
             margin-right: auto;
             font-size: 13px;
@@ -441,6 +462,9 @@
                             >
                                 Save Details
                             </button>
+                            <a href="tel:${enquiry.caller}" class="call-button">
+                            📞 Call Customer
+                            </a>
 
                         </div>
 
