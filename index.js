@@ -1,52 +1,100 @@
+
 require("dotenv").config();
 
 const express = require("express");
 const twilio = require("twilio");
 const mongoose = require("mongoose");
+const path = require("path");
 
 const Enquiry = require("./enquiry");
 const parseEnquiry = require("./parse-enquiry");
 const businessConfig = require("./business-config");
 const { getBusinessByTwilioNumber } = require("./businesses");
+const { configureAuthentication, requireLogin, requireSameOrigin } = require("./auth");
 
 const app = express();
 const PORT = 3100;
 
-
-// --------------------------------------------------
 // DATABASE
-// --------------------------------------------------
-
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log("[DATABASE] Connected to MongoDB"))
-    .catch(error =>
-        console.error("[DATABASE ERROR]", error.message)
-    );
+    .catch(error => console.error("[DATABASE ERROR]", error.message));
 
-
-// --------------------------------------------------
 // MIDDLEWARE
-// --------------------------------------------------
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static("public"));
 
+configureAuthentication(app);
 
-// --------------------------------------------------
+// DASHBOARD ACCESS
+app.get("/index.html", (req, res) => {
+    if (!req.session?.user) {
+        return res.redirect("/login.html");
+    }
+
+    res.redirect("/");
+});
+
+app.get("/", (req, res) => {
+    if (!req.session?.user) {
+        return res.redirect("/login.html");
+    }
+
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Require login for every enquiry API route.
+app.use("/api", requireLogin, requireSameOrigin);
+
+// Public assets, but never serve the dashboard anonymously.
+app.use(express.static(path.join(__dirname, "public"), {
+    index: false
+}));
+
 // TWILIO
-// --------------------------------------------------
+const client = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+);
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+// HUMAN TRANSFER TEST
+app.post("/test-human-transfer", (req, res) => {
+    const response = new twilio.twiml.VoiceResponse();
 
-const client = twilio(accountSid, authToken);
+    response.say(
+        { voice: "Polly.Amy", language: "en-GB" },
+        "Please hold while I connect you to a member of our team."
+    );
 
+    const dial = response.dial({
+        timeout: 20,
+        answerOnBridge: true,
+        action: "/human-transfer-result",
+        method: "POST"
+    });
 
-// --------------------------------------------------
+    dial.number(process.env.HUMAN_TRANSFER_NUMBER);
+
+    res.type("text/xml");
+    res.send(response.toString());
+});
+
+app.post("/human-transfer-result", (req, res) => {
+    const response = new twilio.twiml.VoiceResponse();
+
+    if (req.body.DialCallStatus !== "completed") {
+        response.say(
+            { voice: "Polly.Amy", language: "en-GB" },
+            "Sorry, nobody is available right now. We'll arrange for someone to call you back."
+        );
+    }
+
+    response.hangup();
+    res.type("text/xml");
+    res.send(response.toString());
+});
+
 // INCOMING CALL
-// --------------------------------------------------
-
 app.post("/incoming-call", async (req, res) => {
     const caller = req.body.From || "Unknown caller";
     const calledNumber = req.body.To;
@@ -61,10 +109,7 @@ app.post("/incoming-call", async (req, res) => {
     const response = new twilio.twiml.VoiceResponse();
 
     response.say(
-        {
-            voice: "Polly.Amy",
-            language: "en-GB"
-        },
+        { voice: "Polly.Amy", language: "en-GB" },
         activeBusiness.voiceMessage
     );
 
@@ -75,10 +120,7 @@ app.post("/incoming-call", async (req, res) => {
     res.send(response.toString());
 
     if (caller === "Unknown caller") {
-        console.log(
-            "[SMS] No caller number available - SMS not sent."
-        );
-
+        console.log("[SMS] No caller number available - SMS not sent.");
         return;
     }
 
@@ -87,15 +129,11 @@ app.post("/incoming-call", async (req, res) => {
             body:
                 `${activeBusiness.businessName}: ` +
                 `${activeBusiness.rescueMessage}`,
-
             from: activeBusiness.twilioNumber,
             to: caller
         });
 
-        console.log(
-            `[SMS SENT] ${message.sid} -> ${caller}`
-        );
-
+        console.log(`[SMS SENT] ${message.sid} -> ${caller}`);
     } catch (error) {
         console.error(
             `[SMS FAILED] ${error.code || ""} ${error.message}`
@@ -103,11 +141,7 @@ app.post("/incoming-call", async (req, res) => {
     }
 });
 
-
-// --------------------------------------------------
 // INCOMING SMS
-// --------------------------------------------------
-
 app.post("/incoming-sms", async (req, res) => {
     const from = req.body.From || "Unknown";
     const body = req.body.Body || "";
@@ -115,7 +149,6 @@ app.post("/incoming-sms", async (req, res) => {
 
     const business = getBusinessByTwilioNumber(receivedNumber);
     const activeBusiness = business || businessConfig;
-
     const parsed = parseEnquiry(body);
 
     const enquiry = {
@@ -135,77 +168,60 @@ app.post("/incoming-sms", async (req, res) => {
 
     try {
         const savedEnquiry = await Enquiry.create(enquiry);
-
-        console.log(
-            `[ENQUIRY SAVED] ${savedEnquiry._id}`
-        );
-
+        console.log(`[ENQUIRY SAVED] ${savedEnquiry._id}`);
     } catch (error) {
-        console.error(
-            "[ENQUIRY SAVE FAILED]",
-            error.message
-        );
+        console.error("[ENQUIRY SAVE FAILED]", error.message);
     }
 
     const response = new twilio.twiml.MessagingResponse();
-
     res.type("text/xml");
     res.send(response.toString());
 });
 
+// TENANT OWNERSHIP
+// Never accept a business ID from the browser.
+function enquiryFilter(req) {
+    const businessId = req.session.user.businessId;
 
-// --------------------------------------------------
+    if (businessId === "keycontrol") {
+        return {
+            $or: [
+                { businessId: "keycontrol" },
+                { businessId: { $exists: false } }
+            ]
+        };
+    }
+
+    return { businessId };
+}
+
+function enquiryById(req) {
+    return {
+        $and: [
+            { _id: req.params.id },
+            enquiryFilter(req)
+        ]
+    };
+}
+
 // GET ENQUIRIES
-// --------------------------------------------------
-
 app.get("/api/enquiries", async (req, res) => {
     try {
-        const businessId =
-            req.query.businessId || "keycontrol";
-
-        // Older KeyControl enquiries may not physically contain
-        // businessId in MongoDB. Only KeyControl is allowed to
-        // inherit those legacy records.
-
-        const filter =
-            businessId === "keycontrol"
-                ? {
-                    $or: [
-                        { businessId: "keycontrol" },
-                        { businessId: { $exists: false } }
-                    ]
-                }
-                : {
-                    businessId: businessId
-                };
-
-        const enquiries = await Enquiry.find(filter)
+        const enquiries = await Enquiry.find(enquiryFilter(req))
             .sort({ receivedAt: -1 });
 
         res.json(enquiries);
-
     } catch (error) {
-        console.error(
-            "[ENQUIRIES ERROR]",
-            error.message
-        );
-
+        console.error("[ENQUIRIES ERROR]", error.message);
         res.status(500).json({
             error: "Unable to retrieve enquiries"
         });
     }
 });
 
-
-// --------------------------------------------------
 // UPDATE ENQUIRY STATUS
-// --------------------------------------------------
-
 app.patch("/api/enquiries/:id/status", async (req, res) => {
     try {
-        const businessId =
-            req.query.businessId || "keycontrol";
-
         const allowedStatuses = [
             "New",
             "In Progress",
@@ -221,13 +237,8 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
         }
 
         const enquiry = await Enquiry.findOneAndUpdate(
-            {
-                _id: req.params.id,
-                businessId: businessId
-            },
-            {
-                status
-            },
+            enquiryById(req),
+            { status },
             {
                 returnDocument: "after",
                 runValidators: true
@@ -241,29 +252,17 @@ app.patch("/api/enquiries/:id/status", async (req, res) => {
         }
 
         res.json(enquiry);
-
     } catch (error) {
-        console.error(
-            "[STATUS UPDATE ERROR]",
-            error.message
-        );
-
+        console.error("[STATUS UPDATE ERROR]", error.message);
         res.status(500).json({
             error: "Unable to update enquiry status"
         });
     }
 });
 
-
-// --------------------------------------------------
 // UPDATE ENQUIRY DETAILS
-// --------------------------------------------------
-
 app.patch("/api/enquiries/:id", async (req, res) => {
     try {
-        const businessId =
-            req.query.businessId || "keycontrol";
-
         const {
             customerName,
             vehicleRegistration,
@@ -272,10 +271,9 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             notes
         } = req.body;
 
-        const existingEnquiry = await Enquiry.findOne({
-            _id: req.params.id,
-            businessId: businessId
-        });
+        const existingEnquiry = await Enquiry.findOne(
+            enquiryById(req)
+        );
 
         if (!existingEnquiry) {
             return res.status(404).json({
@@ -283,61 +281,30 @@ app.patch("/api/enquiries/:id", async (req, res) => {
             });
         }
 
-        existingEnquiry.customerName =
-            customerName;
-
-        existingEnquiry.vehicleRegistration =
-            vehicleRegistration;
-
-        existingEnquiry.postcode =
-            postcode;
-
-        existingEnquiry.serviceRequired =
-            serviceRequired;
-
-        existingEnquiry.notes =
-            notes;
-
-        // Once somebody works on a new enquiry,
-        // automatically move it into In Progress.
-        //
-        // Completed enquiries are never reopened
-        // simply because their details were edited.
+        existingEnquiry.customerName = customerName;
+        existingEnquiry.vehicleRegistration = vehicleRegistration;
+        existingEnquiry.postcode = postcode;
+        existingEnquiry.serviceRequired = serviceRequired;
+        existingEnquiry.notes = notes;
 
         if (existingEnquiry.status === "New") {
             existingEnquiry.status = "In Progress";
         }
 
         await existingEnquiry.save();
-
         res.json(existingEnquiry);
-
     } catch (error) {
-        console.error(
-            "[ENQUIRY UPDATE ERROR]",
-            error.message
-        );
-
+        console.error("[ENQUIRY UPDATE ERROR]", error.message);
         res.status(500).json({
             error: "Unable to update enquiry"
         });
     }
 });
 
-
-// --------------------------------------------------
 // RE-PARSE ENQUIRY
-// --------------------------------------------------
-
 app.post("/api/enquiries/:id/reparse", async (req, res) => {
     try {
-        const businessId =
-            req.query.businessId || "keycontrol";
-
-        const enquiry = await Enquiry.findOne({
-            _id: req.params.id,
-            businessId: businessId
-        });
+        const enquiry = await Enquiry.findOne(enquiryById(req));
 
         if (!enquiry) {
             return res.status(404).json({
@@ -347,53 +314,26 @@ app.post("/api/enquiries/:id/reparse", async (req, res) => {
 
         const parsed = parseEnquiry(enquiry.message);
 
-        enquiry.customerName =
-            parsed.customerName;
+        enquiry.customerName = parsed.customerName;
+        enquiry.vehicleRegistration = parsed.vehicleRegistration;
+        enquiry.postcode = parsed.postcode;
+        enquiry.serviceRequired = parsed.serviceRequired;
 
-        enquiry.vehicleRegistration =
-            parsed.vehicleRegistration;
-
-        enquiry.postcode =
-            parsed.postcode;
-
-        enquiry.serviceRequired =
-            parsed.serviceRequired;
-
-        // Deliberately preserve:
-        // - original SMS
-        // - notes
-        // - status
-        // - caller
-        // - received time
-        // - business ownership
-
+        // Preserve original SMS, notes, status,
+        // caller, received time and business ownership.
         await enquiry.save();
 
-        console.log(
-            `[ENQUIRY RE-PARSED] ${enquiry._id}`
-        );
-
+        console.log(`[ENQUIRY RE-PARSED] ${enquiry._id}`);
         res.json(enquiry);
-
     } catch (error) {
-        console.error(
-            "[ENQUIRY RE-PARSE ERROR]",
-            error.message
-        );
-
+        console.error("[ENQUIRY RE-PARSE ERROR]", error.message);
         res.status(500).json({
             error: "Unable to re-parse enquiry"
         });
     }
 });
 
-
-// --------------------------------------------------
 // START SERVER
-// --------------------------------------------------
-
 app.listen(PORT, () => {
-    console.log(
-        `MissedCall Rescue listening on port ${PORT}`
-    );
+    console.log(`MissedCall Rescue listening on port ${PORT}`);
 });

@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In | MissedCall Rescue</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #111827;
+            color: #1f2937;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 36px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+        }
+
+        .logo {
+            display: block;
+            width: 260px;
+            max-width: 100%;
+            margin: 0 auto 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 25px;
+        }
+
+        .subtitle {
+            margin: 0 0 28px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 1px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 22px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover { background: #1d4ed8; }
+        button:disabled { opacity: .6; cursor: wait; }
+
+        .error {
+            min-height: 20px;
+            margin-top: 14px;
+            color: #b91c1c;
+            font-size: 13px;
+        }
+
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <img
+            src="/missedcall-rescue-logo.png"
+            alt="MissedCall Rescue"
+            class="logo"
+        >
+
+        <h1>Welcome back</h1>
+        <p class="subtitle">
+            Sign in to manage your customer enquiries.
+        </p>
+
+        <form id="login-form">
+            <label for="password">Administrator password</label>
+            <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                autofocus
+            >
+
+            <button id="login-button" type="submit">
+                Sign In
+            </button>
+
+            <div id="error" class="error" role="alert"></div>
+        </form>
+
+        <div class="footer">
+            MissedCall Rescue &copy; 2026
+        </div>
+    </main>
+
+    <script>
+        document.getElementById("login-form")
+            .addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                const button =
+                    document.getElementById("login-button");
+                const error =
+                    document.getElementById("error");
+                const password =
+                    document.getElementById("password").value;
+
+                button.disabled = true;
+                button.textContent = "Signing in...";
+                error.textContent = "";
+
+                try {
+                    const response = await fetch("/auth/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ password })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Invalid credentials");
+                    }
+
+                    window.location.replace("/");
+                } catch (err) {
+                    error.textContent =
+                        "Unable to sign in. Check your password.";
+                    button.disabled = false;
+                    button.textContent = "Sign In";
+                }
+            });
+    </script>
+</body>
+</html>
