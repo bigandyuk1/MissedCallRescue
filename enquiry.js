@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const enquirySchema = new mongoose.Schema({
@@ -12,10 +13,10 @@ const enquirySchema = new mongoose.Schema({
     },
 
     businessId: {
-    type: String,
-    required: true,
-    default: "keycontrol"
-},
+        type: String,
+        required: true,
+        default: "keycontrol"
+    },
 
     customerName: {
         type: String,
@@ -46,6 +47,16 @@ const enquirySchema = new mongoose.Schema({
         type: String,
         enum: ["New", "In Progress", "Completed"],
         default: "New"
+    },
+
+    archived: {
+        type: Boolean,
+        default: false
+    },
+
+    archivedAt: {
+        type: Date,
+        default: null
     },
 
     receivedAt: {

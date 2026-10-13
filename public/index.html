@@ -1,635 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MissedCall Rescue</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f8;
-            color: #1f2937;
-        }
-
-        .header-logo {
-            display: block;
-            width: 260px;
-            max-width: 100%;
-            height: auto;
-            margin-bottom: 6px;
-        }
-
-        header {
-            background: #111827;
-            color: white;
-            padding: 22px 30px;
-        }
-
-        .header-content {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 28px;
-        }
-
-        header p {
-            margin: 6px 0 0;
-            color: #cbd5e1;
-        }
-
-        main {
-            max-width: 1100px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        .dashboard-heading {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .dashboard-heading h2 {
-            margin: 0;
-            font-size: 22px;
-        }
-
-        #enquiry-count {
-            background: #e5e7eb;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-
-        .filters {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .filters button {
-            border: 1px solid #d1d5db;
-            background: white;
-            padding: 8px 14px;
-            border-radius: 7px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .filters button:hover {
-            background: #f3f4f6;
-        }
-
-        .filters button.active {
-            background: #111827;
-            color: white;
-            border-color: #111827;
-        }
-
-        .enquiry-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-
-        .enquiry-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .caller {
-            font-weight: bold;
-            font-size: 17px;
-        }
-
-        .status {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 4px 9px;
-            border-radius: 12px;
-            background: #dbeafe;
-            color: #1e40af;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .received {
-            color: #6b7280;
-            font-size: 13px;
-            white-space: nowrap;
-        }
-
-        .original-message {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 7px;
-            padding: 14px;
-            margin-bottom: 18px;
-        }
-
-        .original-message-label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            color: #6b7280;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        .message {
-            margin: 0;
-            line-height: 1.55;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
-
-        .details-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-
-        .field {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .field label {
-            font-size: 13px;
-            font-weight: bold;
-            color: #4b5563;
-        }
-
-        .field input,
-        .field textarea,
-        .status-actions select {
-            width: 100%;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 9px 10px;
-            font-family: inherit;
-            font-size: 14px;
-            background: white;
-        }
-
-        .field textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .full-width {
-            grid-column: 1 / -1;
-        }
-
-        .card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 14px;
-            margin-top: 16px;
-        }
-
-        .status-actions {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 14px;
-        }
-
-        .status-actions select {
-            width: auto;
-            padding: 7px 9px;
-        }
-
-        .save-button {
-            border: 0;
-            background: #111827;
-            color: white;
-            padding: 9px 16px;
-            border-radius: 7px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .save-button:hover {
-            background: #374151;
-        }
-
-        .save-button:disabled {
-            opacity: 0.6;
-            cursor: default;
-        }
-
-        .call-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #111827;
-            color: white;
-            border: 0;
-            padding: 9px 16px;
-            border-radius: 7px;
-            text-decoration: none;
-            font-family: inherit;
-            font-size: 13px;
-            line-height: normal;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .call-button:hover {
-            background: #374151;
-        }
-
-        .copy-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #111827;
-            color: white;
-            border: 0;
-            padding: 9px 16px;
-            border-radius: 7px;
-            font-family: inherit;
-            font-size: 13px;
-            line-height: normal;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .copy-button:hover {
-            background: #374151;
-        }
-
-        .save-result {
-            margin-right: auto;
-            font-size: 13px;
-            color: #047857;
-        }
-
-        .empty,
-        .error {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            color: #6b7280;
-        }
-
-        @media (max-width: 700px) {
-            header {
-                padding: 18px 20px;
-            }
-
-            .enquiry-header {
-                display: block;
-            }
-
-            .received {
-                display: block;
-                margin-top: 6px;
-            }
-
-            .details-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .full-width {
-                grid-column: auto;
-            }
-
-            .card-footer {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-        }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enquiries | MissedCall Rescue</title>
+<style>
+:root{font-family:Inter,Arial,Helvetica,sans-serif;color:#192536;background:#f3f5f9}*{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+header{background:#111827;color:#fff;padding:22px max(20px,calc((100vw - 1120px)/2))}header img{display:block;width:255px;max-width:100%;height:auto}header p{margin:7px 0 0;color:#bdc7d7;font-size:14px}
+main{max-width:1160px;margin:32px auto;padding:0 20px}.heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.heading h1{font-size:25px;margin:0;letter-spacing:-.5px}.count{font-size:13px;border:1px solid #dbe0e8;border-radius:50px;background:white;padding:8px 13px;color:#475569}
+.toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}.tabs,.filters{display:flex;gap:7px;flex-wrap:wrap}.tabs button,.filters button{border:1px solid #d8dee8;background:white;border-radius:8px;padding:10px 14px;color:#475569;font-size:13px;font-weight:600}.tabs button.active{background:#111827;color:white;border-color:#111827}.filters button.active{background:#e8eef8;color:#1b365d;border-color:#c9d8ee}
+.enquiry-card{background:#fff;border:1px solid #e1e5ec;border-radius:13px;margin-bottom:17px;padding:22px;box-shadow:0 3px 13px #16233b09}.enquiry-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}.caller{font-size:17px;font-weight:700}.badge{display:inline-block;margin-left:9px;background:#e8f0ff;color:#244d92;border-radius:50px;padding:5px 10px;font-size:12px;font-weight:700}.badge.completed{background:#e3f6ec;color:#11613d}.badge.progress{background:#fff1d6;color:#875200}.received{font-size:12px;color:#64748b;text-align:right;line-height:1.7}.original{background:#f8fafc;border:1px solid #e7ecf2;padding:15px;border-radius:9px;margin-bottom:18px}.small-label{display:block;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:.06em;font-size:11px;margin-bottom:7px}.message{margin:0;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:#475569;font-weight:700}.field input,.field textarea,.status-control select{border:1px solid #cfd7e3;border-radius:7px;padding:10px;width:100%;background:white;color:#192536;font-size:14px}.field input:focus,.field textarea:focus{outline:2px solid #b5d0f5;outline-offset:1px}.field textarea{min-height:83px;resize:vertical}.wide{grid-column:1/-1}.footer{border-top:1px solid #e7ecf2;margin-top:20px;padding-top:16px;display:flex;align-items:center;flex-wrap:wrap;gap:9px}.status-control{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:13px;color:#475569}.status-control select{width:auto;padding:8px}.btn{border:1px solid #d3dbe6;background:white;border-radius:7px;padding:9px 13px;font-size:13px;font-weight:700;text-decoration:none;color:#263449;white-space:nowrap}.btn:hover{background:#f3f6fb}.btn.primary{background:#111827;border-color:#111827;color:white}.btn.primary:hover{background:#334155}.btn.archive{color:#754b12;background:#fff9ec;border-color:#f1dbad}.btn.restore{color:#166043;background:#eaf8f0;border-color:#bfe4ce}.btn.delete{color:#991b1b;background:#fff1f2;border-color:#fecdd3}.btn.delete:hover{background:#ffe4e6}.feedback{width:100%;font-size:13px;color:#047857;min-height:1em}.feedback.error-text{color:#b91c1c}.empty{padding:55px 25px;text-align:center;background:white;border:1px solid #e1e5ec;border-radius:12px;color:#64748b}.empty strong{display:block;color:#253449;margin-bottom:8px;font-size:17px}.muted{opacity:.8}
+@media(max-width:700px){header{padding:20px}main{margin:24px auto}.heading h1{font-size:22px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.enquiry-header{display:block}.received{text-align:left;margin-top:8px}.status-control{width:100%}.footer{align-items:stretch}.footer .btn{flex:1;text-align:center}.toolbar{display:block}.filters{margin-top:12px}.enquiry-card{padding:17px}}
+/* Premium confirmations and unobtrusive notifications */
+.notice-stack{position:fixed;right:24px;bottom:24px;z-index:1100;display:grid;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+.notice{pointer-events:auto;display:flex;align-items:flex-start;gap:12px;background:#172235;color:#fff;border:1px solid #364357;border-left:3px solid #69d7b0;border-radius:12px;padding:14px 15px;box-shadow:0 14px 40px #0f172a35;animation:notice-in .22s ease-out;font-size:13px;line-height:1.5}
+.notice.error{border-left-color:#fda4af}.notice svg{flex:none;margin-top:1px}.notice-content{flex:1}.notice-content strong{display:block;font-size:13px;margin-bottom:2px}.notice-close{background:transparent;border:0;color:#cbd5e1;padding:0 1px;font-size:20px;line-height:1;cursor:pointer}
+@keyframes notice-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.dialog-backdrop{position:fixed;inset:0;background:#0c1628a8;z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.dialog{background:#fff;width:min(440px,100%);border-radius:16px;box-shadow:0 24px 80px #0004;padding:28px;color:#192536}
+.dialog-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#fff0f1;color:#b42332;margin-bottom:15px;font-size:21px;font-weight:800}.dialog-icon.neutral{background:#eef3fa;color:#294766}
+.dialog h2{font-size:20px;letter-spacing:-.4px;margin:0 0 9px}.dialog p{font-size:14px;line-height:1.65;color:#58667a;margin:0 0 23px}.dialog-actions{display:flex;justify-content:flex-end;gap:9px}.dialog-actions button{border-radius:8px;padding:10px 17px;font-weight:700;font-size:13px;border:1px solid #d4dce6;background:white;color:#293548}.dialog-actions .confirm{background:#172235;color:white;border-color:#172235}.dialog-actions .danger{background:#b42332;border-color:#b42332;color:white}
+@media(max-width:700px){.notice-stack{right:16px;bottom:16px}}
+@media(prefers-reduced-motion:reduce){.notice{animation:none}}
+</style>
 </head>
-
 <body>
-
-    <header>
-        <div class="header-content">
-            <img
-                src="/missedcall-rescue-logo.png"
-                alt="MissedCall Rescue"
-                class="header-logo"
-        >
-            <p>Enquiry Dashboard</p>
-        </div>
-    </header>
-
-    <main>
-
-        <div class="dashboard-heading">
-            <h2>Enquiries</h2>
-            <span id="enquiry-count">Loading...</span>
-        </div>
-
-        <div class="filters">
-            <button data-filter="All" onclick="setFilter('All')">All</button>
-            <button data-filter="New" onclick="setFilter('New')">New</button>
-            <button data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button>
-            <button data-filter="Completed" onclick="setFilter('Completed')">Completed</button>
-        </div>
-
-        <div id="enquiries">
-            <div class="empty">Loading enquiries...</div>
-        </div>
-
-    </main>
-
-    <script>
-        let currentFilter = "All";
-        let allEnquiries = [];
-
-        async function loadEnquiries() {
-            const container = document.getElementById("enquiries");
-            const count = document.getElementById("enquiry-count");
-
-            try {
-                const response = await fetch("/api/enquiries");
-
-                if (!response.ok) {
-                    throw new Error("Unable to retrieve enquiries");
-                }
-
-                allEnquiries = await response.json();
-
-                setFilter(currentFilter);
-
-            } catch (error) {
-                count.textContent = "Error";
-                container.innerHTML =
-                    '<div class="error">Unable to load enquiries.</div>';
-            }
-        }
-
-        function renderEnquiries(enquiries) {
-            const container = document.getElementById("enquiries");
-            const count = document.getElementById("enquiry-count");
-
-            count.textContent =
-                `${enquiries.length} ${enquiries.length === 1 ? "enquiry" : "enquiries"}`;
-
-            if (enquiries.length === 0) {
-                container.innerHTML =
-                    '<div class="empty">No enquiries in this view.</div>';
-                return;
-            }
-
-            container.innerHTML = enquiries.map(enquiry => {
-                const status = enquiry.status || "New";
-
-                return `
-                    <article class="enquiry-card" id="enquiry-${enquiry._id}">
-
-                        <div class="enquiry-header">
-                            <div>
-                                <span class="caller">
-                                    ${escapeHtml(enquiry.caller)}
-                                </span>
-
-                                <span class="status">
-                                    ${escapeHtml(status)}
-                                </span>
-                            </div>
-
-                            <span class="received">
-                                Received: ${new Date(enquiry.receivedAt).toLocaleString("en-GB")}
-                                ${enquiry.updatedAt
-                                ? `<br>Updated: ${new Date(enquiry.updatedAt).toLocaleString("en-GB")}`
-                                : ""}
-                            </span>
-                        </div>
-
-                        <div class="original-message">
-                            <span class="original-message-label">Original SMS</span>
-                            <p class="message">${escapeHtml(enquiry.message)}</p>
-                        </div>
-
-                        <div class="details-grid">
-
-                            <div class="field">
-                                <label>Customer Name</label>
-                                <input
-                                    type="text"
-                                    class="customerName"
-                                    value="${escapeAttribute(enquiry.customerName || "")}"
-                                >
-                            </div>
-
-                            <div class="field">
-                                <label>Vehicle Registration</label>
-                                <input
-                                    type="text"
-                                    class="vehicleRegistration"
-                                    value="${escapeAttribute(enquiry.vehicleRegistration || "")}"
-                                >
-                            </div>
-
-                            <div class="field">
-                                <label>Postcode</label>
-                                <input
-                                    type="text"
-                                    class="postcode"
-                                    value="${escapeAttribute(enquiry.postcode || "")}"
-                                >
-                            </div>
-
-                            <div class="field">
-                                <label>Service Required</label>
-                                <input
-                                    type="text"
-                                    class="serviceRequired"
-                                    value="${escapeAttribute(enquiry.serviceRequired || "")}"
-                                >
-                            </div>
-
-                            <div class="field full-width">
-                                <label>Notes</label>
-                                <textarea class="notes">${escapeHtml(enquiry.notes || "")}</textarea>
-                            </div>
-
-                        </div>
-
-                        <div class="card-footer">
-
-                            <div class="status-actions">
-                                <label>Status:</label>
-
-                                <select onchange="updateStatus('${enquiry._id}', this.value)">
-                                    <option value="New" ${status === "New" ? "selected" : ""}>New</option>
-                                    <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
-                                    <option value="Completed" ${status === "Completed" ? "selected" : ""}>Completed</option>
-                                </select>
-                            </div>
-
-                            <span class="save-result" id="save-result-${enquiry._id}"></span>
-
-                            <button
-                                class="save-button"
-                                onclick="saveEnquiry('${enquiry._id}', this)"
-                            >
-                                Save Details
-                            </button>
-                            <a href="tel:${enquiry.caller}" class="call-button">
-                            📞 Call Customer
-                            </a>
-                            <button
-                                class="copy-button"
-                                onclick="copyNumber('${enquiry.caller}', this)"
-                            >
-                                Copy Number
-                            </button>
-
-                        </div>
-
-                    </article>
-                `;
-            }).join("");
-        }
-
-        function setFilter(filter) {
-            currentFilter = filter;
-
-            const filteredEnquiries =
-                filter === "All"
-                    ? allEnquiries
-                    : allEnquiries.filter(enquiry =>
-                        (enquiry.status || "New") === filter
-                    );
-
-            document
-                .querySelectorAll(".filters button")
-                .forEach(button => {
-                    button.classList.toggle(
-                        "active",
-                        button.dataset.filter === filter
-                    );
-                });
-
-            renderEnquiries(filteredEnquiries);
-        }
-
-        async function copyNumber(number, button) {
-    try {
-        await navigator.clipboard.writeText(number);
-
-        const originalText = button.textContent;
-        button.textContent = "Copied!";
-
-        setTimeout(() => {
-            button.textContent = originalText;
-        }, 1500);
-    } catch (error) {
-        console.error("Unable to copy number:", error);
-    }
+<header><img src="/missedcall-rescue-logo.png" alt="MissedCall Rescue"><p>Enquiry management</p></header>
+<main>
+<div class="heading"><h1>Enquiries</h1><span class="count" id="enquiry-count">Loading…</span></div>
+<div class="toolbar">
+  <div class="tabs" aria-label="Enquiry views"><button data-view="active" class="active" onclick="setArchiveView('active')">Active enquiries</button><button data-view="archived" onclick="setArchiveView('archived')">Archived enquiries</button></div>
+  <div class="filters" aria-label="Status filters"><button data-filter="All" class="active" onclick="setFilter('All')">All</button><button data-filter="New" onclick="setFilter('New')">New</button><button data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button><button data-filter="Completed" onclick="setFilter('Completed')">Completed</button></div>
+</div>
+<div id="enquiries" aria-live="polite"><div class="empty">Loading enquiries…</div></div>
+</main>
+<div class="notice-stack" id="notice-stack" role="status" aria-live="polite"></div>
+<div id="dialog-host"></div>
+<script>
+let allEnquiries=[];
+let currentFilter='All';
+let archiveView='active';
+const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+const esc=escapeHtml;
+const displayDate=value=>value?new Date(value).toLocaleString('en-GB'):'—';
+const findEnquiry=id=>allEnquiries.find(e=>e._id===id);
+function notify(message,type='success'){
+ const stack=document.getElementById('notice-stack');
+ const item=document.createElement('div');item.className=`notice ${type==='error'?'error':''}`;
+ const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=type==='error'?'!':'✓';icon.style.fontWeight='800';icon.style.fontSize='18px';
+ const content=document.createElement('div');content.className='notice-content';
+ const heading=document.createElement('strong');heading.textContent=type==='error'?'Something went wrong':'All done';
+ const detail=document.createElement('span');detail.textContent=message;content.append(heading,detail);
+ const close=document.createElement('button');close.className='notice-close';close.type='button';close.textContent='×';close.setAttribute('aria-label','Dismiss notification');close.onclick=()=>item.remove();
+ item.append(icon,content,close);stack.append(item);
+ while(stack.children.length>3)stack.firstElementChild.remove();
+ setTimeout(()=>item.remove(),4500);
+}
+function confirmAction({title,message,confirmLabel='Continue',danger=false}){
+ return new Promise(resolve=>{
+  const host=document.getElementById('dialog-host');
+  const backdrop=document.createElement('div');backdrop.className='dialog-backdrop';
+  const dialog=document.createElement('div');dialog.className='dialog';dialog.setAttribute('role','alertdialog');dialog.setAttribute('aria-modal','true');
+  dialog.setAttribute('aria-labelledby','dialog-title');dialog.setAttribute('aria-describedby','dialog-description');
+  const symbol=document.createElement('div');symbol.className=`dialog-icon ${danger?'':'neutral'}`;symbol.textContent=danger?'!':'?';
+  const heading=document.createElement('h2');heading.id='dialog-title';heading.textContent=title;
+  const description=document.createElement('p');description.id='dialog-description';description.textContent=message;
+  const actions=document.createElement('div');actions.className='dialog-actions';
+  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';
+  const confirm=document.createElement('button');confirm.type='button';confirm.className=danger?'danger':'confirm';confirm.textContent=confirmLabel;
+  actions.append(cancel,confirm);dialog.append(symbol,heading,description,actions);backdrop.append(dialog);host.append(backdrop);
+  const previouslyFocused=document.activeElement;
+  const finish=value=>{backdrop.removeEventListener('keydown',onKey);backdrop.remove();previouslyFocused?.focus?.();resolve(value);};
+  const onKey=event=>{if(event.key==='Escape'){event.preventDefault();finish(false);}if(event.key==='Tab'){const target=event.shiftKey?confirm:cancel;if(document.activeElement===(event.shiftKey?cancel:confirm)){event.preventDefault();target.focus();}}};
+  backdrop.addEventListener('keydown',onKey);
+  backdrop.addEventListener('click',event=>{if(event.target===backdrop)finish(false);});
+  cancel.onclick=()=>finish(false);confirm.onclick=()=>finish(true);cancel.focus();
+ });
 }
 
-        async function updateStatus(id, status) {
-            try {
-                const response = await fetch(
-                    `/api/enquiries/${id}/status`,
-                    {
-                        method: "PATCH",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ status })
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error("Unable to update status");
-                }
-
-                await loadEnquiries();
-
-            } catch (error) {
-                alert("Unable to update enquiry status.");
-            }
-        }
-
-        async function saveEnquiry(id, button) {
-            const card = document.getElementById(`enquiry-${id}`);
-            const result = document.getElementById(`save-result-${id}`);
-
-            const details = {
-                customerName: card.querySelector(".customerName").value.trim(),
-                vehicleRegistration: card.querySelector(".vehicleRegistration").value.trim(),
-                postcode: card.querySelector(".postcode").value.trim(),
-                serviceRequired: card.querySelector(".serviceRequired").value.trim(),
-                notes: card.querySelector(".notes").value.trim()
-            };
-
-            button.disabled = true;
-            button.textContent = "Saving...";
-            result.textContent = "";
-
-            try {
-                const response = await fetch(
-                    `/api/enquiries/${id}`,
-                    {
-                        method: "PATCH",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(details)
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error("Unable to save enquiry");
-                }
-
-                result.textContent = "Saved";
-
-                await loadEnquiries();
-
-            } catch (error) {
-                result.textContent = "Save failed";
-                button.disabled = false;
-                button.textContent = "Save Details";
-            }
-        }
-
-        function escapeHtml(value) {
-            return String(value)
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
-        }
-
-        function escapeAttribute(value) {
-            return escapeHtml(value);
-        }
-
-        loadEnquiries();
-    </script>
-
+async function loadEnquiries(){
+ try{
+  const response=await fetch('/api/enquiries',{credentials:'same-origin'});
+  if(!response.ok)throw Error('Unable to retrieve enquiries');
+  allEnquiries=await response.json();
+  renderEnquiries();
+ }catch(error){document.getElementById('enquiry-count').textContent='Error';document.getElementById('enquiries').innerHTML='<div class="empty"><strong>Unable to load enquiries</strong>Please refresh or sign in again.</div>';}
+}
+function setArchiveView(view){archiveView=view;currentFilter='All';renderEnquiries();}
+function setFilter(filter){currentFilter=filter;renderEnquiries();}
+function renderEnquiries(){
+ document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===archiveView));
+ document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===currentFilter));
+ const filtered=allEnquiries.filter(e=>(archiveView==='archived'?e.archived===true:e.archived!==true)&&(currentFilter==='All'||(e.status||'New')===currentFilter));
+ document.getElementById('enquiry-count').textContent=`${filtered.length} ${filtered.length===1?'enquiry':'enquiries'}`;
+ const container=document.getElementById('enquiries');
+ if(!filtered.length){container.innerHTML=`<div class="empty"><strong>${archiveView==='archived'?'No archived enquiries':'All clear'}</strong>${archiveView==='archived'?'Archived enquiries will appear here.':'No enquiries match this view.'}</div>`;return;}
+ container.innerHTML=filtered.map(e=>{
+  const id=esc(e._id),status=e.status||'New';
+  const badgeClass=status==='Completed'?'completed':status==='In Progress'?'progress':'';
+  const phone=String(e.caller||'').replace(/[^+\d]/g,'');
+  return `<article class="enquiry-card" id="enquiry-${id}">
+    <div class="enquiry-header"><div><span class="caller">${esc(e.caller)}</span><span class="badge ${badgeClass}">${esc(status)}</span></div><div class="received">Received: ${esc(displayDate(e.receivedAt))}${e.updatedAt?`<div>Updated: ${esc(displayDate(e.updatedAt))}</div>`:''}${e.archivedAt?`<div>Archived: ${esc(displayDate(e.archivedAt))}</div>`:''}</div></div>
+    <div class="original"><span class="small-label">Original SMS</span><p class="message">${esc(e.message)}</p></div>
+    <div class="grid"><div class="field"><label>Customer name</label><input class="customerName" value="${esc(e.customerName)}"></div>
+    <div class="field"><label>Vehicle registration</label><input class="vehicleRegistration" value="${esc(e.vehicleRegistration)}"></div>
+    <div class="field"><label>Postcode</label><input class="postcode" value="${esc(e.postcode)}"></div>
+    <div class="field"><label>Service required</label><input class="serviceRequired" value="${esc(e.serviceRequired)}"></div>
+    <div class="field wide"><label>Notes</label><textarea class="notes">${esc(e.notes)}</textarea></div></div>
+    <div class="footer"><div class="status-control"><label for="status-${id}">Status</label><select id="status-${id}" onchange="updateStatus('${id}',this)">
+    ${['New','In Progress','Completed'].map(s=>`<option value="${s}" ${s===status?'selected':''}>${s}</option>`).join('')}</select></div>
+    <button class="btn primary" onclick="saveEnquiry('${id}',this)">Save details</button>
+    <a class="btn" href="tel:${esc(phone)}">Call customer</a>
+    <button class="btn" onclick="copyNumber('${id}',this)">Copy number</button>
+    <button class="btn ${e.archived?'restore':'archive'}" onclick="toggleArchive('${id}',this)">${e.archived?'Restore':'Archive'}</button>
+    ${e.archived===true?`<button class="btn delete" onclick="deleteEnquiry('${id}',this)">Delete permanently</button>`:''}
+    <div class="feedback" id="feedback-${id}" role="status"></div></div></article>`;
+ }).join('');
+}
+function feedback(id,message,error=false){const el=document.getElementById(`feedback-${id}`);if(el){el.textContent=message;el.classList.toggle('error-text',error);}}
+async function patch(url,body){const response=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body)});if(!response.ok)throw Error(`Request failed (${response.status})`);return response.json();}
+async function updateStatus(id,select){
+ const e=findEnquiry(id);if(!e)return;const previous=e.status||'New';select.disabled=true;
+ try{const updated=await patch(`/api/enquiries/${id}/status`,{status:select.value});Object.assign(e,updated);feedback(id,'Status updated');const badge=document.querySelector(`#enquiry-${id} .badge`);if(badge){badge.textContent=updated.status;badge.className='badge '+(updated.status==='Completed'?'completed':updated.status==='In Progress'?'progress':'');}}
+ catch(error){select.value=previous;feedback(id,'Could not update status. Please try again.',true);notify('Unable to update enquiry status.','error');}finally{select.disabled=false;}
+}
+async function saveEnquiry(id,button){
+ const card=document.getElementById(`enquiry-${id}`),e=findEnquiry(id);if(!card||!e)return;
+ const details={customerName:card.querySelector('.customerName').value.trim(),vehicleRegistration:card.querySelector('.vehicleRegistration').value.trim(),postcode:card.querySelector('.postcode').value.trim(),serviceRequired:card.querySelector('.serviceRequired').value.trim(),notes:card.querySelector('.notes').value.trim()};
+ button.disabled=true;button.textContent='Saving…';feedback(id,'');
+ try{const updated=await patch(`/api/enquiries/${id}`,details);Object.assign(e,updated);feedback(id,'Details saved');const badge=card.querySelector('.badge');badge.textContent=updated.status;badge.className='badge '+(updated.status==='Completed'?'completed':updated.status==='In Progress'?'progress':'');card.querySelector('.status-control select').value=updated.status;}
+ catch(error){feedback(id,'Save failed. Please try again.',true);notify('Unable to save enquiry details.','error');}finally{button.disabled=false;button.textContent='Save details';}
+}
+async function toggleArchive(id,button){
+ const e=findEnquiry(id);if(!e)return;const archiving=e.archived!==true;
+ if(!await confirmAction({title:archiving?'Archive enquiry?':'Restore enquiry?',message:archiving?'This enquiry will move to Archived enquiries. You can restore it at any time.':'This enquiry will return to Active enquiries with its details intact.',confirmLabel:archiving?'Archive enquiry':'Restore enquiry'}))return;
+ button.disabled=true;feedback(id,'');
+ try{const updated=await patch(`/api/enquiries/${id}/${archiving?'archive':'restore'}`,{});Object.assign(e,updated);renderEnquiries();notify(archiving?'Enquiry archived successfully.':'Enquiry restored to Active enquiries.');}
+ catch(error){button.disabled=false;feedback(id,`Unable to ${archiving?'archive':'restore'} enquiry.`,true);notify(`Unable to ${archiving?'archive':'restore'} enquiry.`,'error');}
+}
+async function deleteEnquiry(id,button){
+ const e=findEnquiry(id);
+ if(!e||e.archived!==true||archiveView!=='archived')return;
+ if(!await confirmAction({title:'Delete enquiry permanently?',message:'This archived enquiry and its details will be permanently removed. This action cannot be undone.',confirmLabel:'Delete permanently',danger:true}))return;
+ button.disabled=true;
+ feedback(id,'Deleting…');
+ try{
+  const response=await fetch(`/api/enquiries/${encodeURIComponent(id)}`,{method:'DELETE',credentials:'same-origin'});
+  if(!response.ok)throw Error(`Delete failed (${response.status})`);
+  allEnquiries=allEnquiries.filter(item=>item._id!==id);
+  renderEnquiries();notify('Archived enquiry permanently deleted.');
+ }catch(error){button.disabled=false;feedback(id,'Unable to delete enquiry. Please try again.',true);notify('Unable to delete enquiry.','error');}
+}
+async function copyNumber(id,button){const e=findEnquiry(id);if(!e)return;try{await navigator.clipboard.writeText(e.caller||'');button.textContent='Copied';setTimeout(()=>{if(button.isConnected)button.textContent='Copy number';},1500);}catch(error){feedback(id,'Unable to copy number.',true);}}
+loadEnquiries();
+</script>
 </body>
 </html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enquiries | MissedCall Rescue</title>
+<style>
+:root{font-family:Inter,Arial,Helvetica,sans-serif;color:#192536;background:#f3f5f9}*{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+header{background:#111827;color:#fff;padding:22px max(20px,calc((100vw - 1120px)/2))}header img{display:block;width:255px;max-width:100%;height:auto}header p{margin:7px 0 0;color:#bdc7d7;font-size:14px}
+main{max-width:1160px;margin:32px auto;padding:0 20px}.heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}.heading h1{font-size:25px;margin:0;letter-spacing:-.5px}.count{font-size:13px;border:1px solid #dbe0e8;border-radius:50px;background:white;padding:8px 13px;color:#475569}
+.toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}.tabs,.filters{display:flex;gap:7px;flex-wrap:wrap}.tabs button,.filters button{border:1px solid #d8dee8;background:white;border-radius:8px;padding:10px 14px;color:#475569;font-size:13px;font-weight:600}.tabs button.active{background:#111827;color:white;border-color:#111827}.filters button.active{background:#e8eef8;color:#1b365d;border-color:#c9d8ee}
+.enquiry-card{background:#fff;border:1px solid #e1e5ec;border-radius:13px;margin-bottom:17px;padding:22px;box-shadow:0 3px 13px #16233b09}.enquiry-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}.caller{font-size:17px;font-weight:700}.badge{display:inline-block;margin-left:9px;background:#e8f0ff;color:#244d92;border-radius:50px;padding:5px 10px;font-size:12px;font-weight:700}.badge.completed{background:#e3f6ec;color:#11613d}.badge.progress{background:#fff1d6;color:#875200}.received{font-size:12px;color:#64748b;text-align:right;line-height:1.7}.original{background:#f8fafc;border:1px solid #e7ecf2;padding:15px;border-radius:9px;margin-bottom:18px}.small-label{display:block;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:.06em;font-size:11px;margin-bottom:7px}.message{margin:0;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:#475569;font-weight:700}.field input,.field textarea,.status-control select{border:1px solid #cfd7e3;border-radius:7px;padding:10px;width:100%;background:white;color:#192536;font-size:14px}.field input:focus,.field textarea:focus{outline:2px solid #b5d0f5;outline-offset:1px}.field textarea{min-height:83px;resize:vertical}.wide{grid-column:1/-1}.footer{border-top:1px solid #e7ecf2;margin-top:20px;padding-top:16px;display:flex;align-items:center;flex-wrap:wrap;gap:9px}.status-control{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:13px;color:#475569}.status-control select{width:auto;padding:8px}.btn{border:1px solid #d3dbe6;background:white;border-radius:7px;padding:9px 13px;font-size:13px;font-weight:700;text-decoration:none;color:#263449;white-space:nowrap}.btn:hover{background:#f3f6fb}.btn.primary{background:#111827;border-color:#111827;color:white}.btn.primary:hover{background:#334155}.btn.archive{color:#754b12;background:#fff9ec;border-color:#f1dbad}.btn.restore{color:#166043;background:#eaf8f0;border-color:#bfe4ce}.feedback{width:100%;font-size:13px;color:#047857;min-height:1em}.feedback.error-text{color:#b91c1c}.empty{padding:55px 25px;text-align:center;background:white;border:1px solid #e1e5ec;border-radius:12px;color:#64748b}.empty strong{display:block;color:#253449;margin-bottom:8px;font-size:17px}.muted{opacity:.8}
+@media(max-width:700px){header{padding:20px}main{margin:24px auto}.heading h1{font-size:22px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.enquiry-header{display:block}.received{text-align:left;margin-top:8px}.status-control{width:100%}.footer{align-items:stretch}.footer .btn{flex:1;text-align:center}.toolbar{display:block}.filters{margin-top:12px}.enquiry-card{padding:17px}}
+</style>
+</head>
+<body>
+<header><img src="/missedcall-rescue-logo.png" alt="MissedCall Rescue"><p>Enquiry management</p></header>
+<main>
+<div class="heading"><h1>Enquiries</h1><span class="count" id="enquiry-count">Loading…</span></div>
+<div class="toolbar">
+  <div class="tabs" aria-label="Enquiry views"><button data-view="active" class="active" onclick="setArchiveView('active')">Active enquiries</button><button data-view="archived" onclick="setArchiveView('archived')">Archived enquiries</button></div>
+  <div class="filters" aria-label="Status filters"><button data-filter="All" class="active" onclick="setFilter('All')">All</button><button data-filter="New" onclick="setFilter('New')">New</button><button data-filter="In Progress" onclick="setFilter('In Progress')">In Progress</button><button data-filter="Completed" onclick="setFilter('Completed')">Completed</button></div>
+</div>
+<div id="enquiries" aria-live="polite"><div class="empty">Loading enquiries…</div></div>
+</main>
+<script>
+let allEnquiries=[];
+let currentFilter='All';
+let archiveView='active';
+const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+const esc=escapeHtml;
+const displayDate=value=>value?new Date(value).toLocaleString('en-GB'):'—';
+const findEnquiry=id=>allEnquiries.find(e=>e._id===id);
+async function loadEnquiries(){
+ try{
+  const response=await fetch('/api/enquiries',{credentials:'same-origin'});
+  if(!response.ok)throw Error('Unable to retrieve enquiries');
+  allEnquiries=await response.json();
+  renderEnquiries();
+ }catch(error){document.getElementById('enquiry-count').textContent='Error';document.getElementById('enquiries').innerHTML='<div class="empty"><strong>Unable to load enquiries</strong>Please refresh or sign in again.</div>';}
+}
+function setArchiveView(view){archiveView=view;currentFilter='All';renderEnquiries();}
+function setFilter(filter){currentFilter=filter;renderEnquiries();}
+function renderEnquiries(){
+ document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===archiveView));
+ document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===currentFilter));
+ const filtered=allEnquiries.filter(e=>(archiveView==='archived'?e.archived===true:e.archived!==true)&&(currentFilter==='All'||(e.status||'New')===currentFilter));
+ document.getElementById('enquiry-count').textContent=`${filtered.length} ${filtered.length===1?'enquiry':'enquiries'}`;
+ const container=document.getElementById('enquiries');
+ if(!filtered.length){container.innerHTML=`<div class="empty"><strong>${archiveView==='archived'?'No archived enquiries':'All clear'}</strong>${archiveView==='archived'?'Archived enquiries will appear here.':'No enquiries match this view.'}</div>`;return;}
+ container.innerHTML=filtered.map(e=>{
+  const id=esc(e._id),status=e.status||'New';
+  const badgeClass=status==='Completed'?'completed':status==='In Progress'?'progress':'';
+  const phone=String(e.caller||'').replace(/[^+\d]/g,'');
+  return `<article class="enquiry-card" id="enquiry-${id}">
+    <div class="enquiry-header"><div><span class="caller">${esc(e.caller)}</span><span class="badge ${badgeClass}">${esc(status)}</span></div><div class="received">Received: ${esc(displayDate(e.receivedAt))}${e.updatedAt?`<div>Updated: ${esc(displayDate(e.updatedAt))}</div>`:''}${e.archivedAt?`<div>Archived: ${esc(displayDate(e.archivedAt))}</div>`:''}</div></div>
+    <div class="original"><span class="small-label">Original SMS</span><p class="message">${esc(e.message)}</p></div>
+    <div class="grid"><div class="field"><label>Customer name</label><input class="customerName" value="${esc(e.customerName)}"></div>
+    <div class="field"><label>Vehicle registration</label><input class="vehicleRegistration" value="${esc(e.vehicleRegistration)}"></div>
+    <div class="field"><label>Postcode</label><input class="postcode" value="${esc(e.postcode)}"></div>
+    <div class="field"><label>Service required</label><input class="serviceRequired" value="${esc(e.serviceRequired)}"></div>
+    <div class="field wide"><label>Notes</label><textarea class="notes">${esc(e.notes)}</textarea></div></div>
+    <div class="footer"><div class="status-control"><label for="status-${id}">Status</label><select id="status-${id}" onchange="updateStatus('${id}',this)">
+    ${['New','In Progress','Completed'].map(s=>`<option value="${s}" ${s===status?'selected':''}>${s}</option>`).join('')}</select></div>
+    <button class="btn primary" onclick="saveEnquiry('${id}',this)">Save details</button>
+    <a class="btn" href="tel:${esc(phone)}">Call customer</a>
+    <button class="btn" onclick="copyNumber('${id}',this)">Copy number</button>
+    <button class="btn ${e.archived?'restore':'archive'}" onclick="toggleArchive('${id}',this)">${e.archived?'Restore':'Archive'}</button>
+    <div class="feedback" id="feedback-${id}" role="status"></div></div></article>`;
+ }).join('');
+}
+function feedback(id,message,error=false){const el=document.getElementById(`feedback-${id}`);if(el){el.textContent=message;el.classList.toggle('error-text',error);}}
+async function patch(url,body){const response=await fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body)});if(!response.ok)throw Error(`Request failed (${response.status})`);return response.json();}
+async function updateStatus(id,select){
+ const e=findEnquiry(id);if(!e)return;const previous=e.status||'New';select.disabled=true;
+ try{const updated=await patch(`/api/enquiries/${id}/status`,{status:select.value});Object.assign(e,updated);feedback(id,'Status updated');const badge=document.querySelector(`#enquiry-${id} .badge`);if(badge){badge.textContent=updated.status;badge.className='badge '+(updated.status==='Completed'?'completed':updated.status==='In Progress'?'progress':'');}}
+ catch(error){select.value=previous;feedback(id,'Could not update status. Please try again.',true);}finally{select.disabled=false;}
+}
+async function saveEnquiry(id,button){
+ const card=document.getElementById(`enquiry-${id}`),e=findEnquiry(id);if(!card||!e)return;
+ const details={customerName:card.querySelector('.customerName').value.trim(),vehicleRegistration:card.querySelector('.vehicleRegistration').value.trim(),postcode:card.querySelector('.postcode').value.trim(),serviceRequired:card.querySelector('.serviceRequired').value.trim(),notes:card.querySelector('.notes').value.trim()};
+ button.disabled=true;button.textContent='Saving…';feedback(id,'');
+ try{const updated=await patch(`/api/enquiries/${id}`,details);Object.assign(e,updated);feedback(id,'Details saved');const badge=card.querySelector('.badge');badge.textContent=updated.status;badge.className='badge '+(updated.status==='Completed'?'completed':updated.status==='In Progress'?'progress':'');card.querySelector('.status-control select').value=updated.status;}
+ catch(error){feedback(id,'Save failed. Please try again.',true);}finally{button.disabled=false;button.textContent='Save details';}
+}
+async function toggleArchive(id,button){
+ const e=findEnquiry(id);if(!e)return;const archiving=e.archived!==true;
+ if(!confirm(archiving?'Archive this enquiry? It will remain available in Archived enquiries.':'Restore this enquiry to Active enquiries?'))return;
+ button.disabled=true;feedback(id,'');
+ try{const updated=await patch(`/api/enquiries/${id}/${archiving?'archive':'restore'}`,{});Object.assign(e,updated);renderEnquiries();}
+ catch(error){button.disabled=false;feedback(id,`Unable to ${archiving?'archive':'restore'} enquiry.`,true);}
+}
+async function copyNumber(id,button){const e=findEnquiry(id);if(!e)return;try{await navigator.clipboard.writeText(e.caller||'');button.textContent='Copied';setTimeout(()=>{if(button.isConnected)button.textContent='Copy number';},1500);}catch(error){feedback(id,'Unable to copy number.',true);}}
+loadEnquiries();
+</script>
+</body>
+</html>

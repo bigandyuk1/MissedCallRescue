@@ -349,6 +349,102 @@ app.post("/api/enquiries/:id/reparse", async (req, res) => {
     }
 });
 
+// ARCHIVE ENQUIRY
+app.patch("/api/enquiries/:id/archive", async (req, res) => {
+    try {
+        const enquiry = await Enquiry.findOneAndUpdate(
+            enquiryById(req),
+            {
+                archived: true,
+                archivedAt: new Date()
+            },
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        );
+
+        if (!enquiry) {
+            return res.status(404).json({
+                error: "Enquiry not found"
+            });
+        }
+
+        res.json(enquiry);
+    } catch (error) {
+        console.error("[ARCHIVE ERROR]", error.message);
+        res.status(500).json({
+            error: "Unable to archive enquiry"
+        });
+    }
+});
+
+// RESTORE ARCHIVED ENQUIRY
+app.patch("/api/enquiries/:id/restore", async (req, res) => {
+    try {
+        const enquiry = await Enquiry.findOneAndUpdate(
+            enquiryById(req),
+            {
+                archived: false,
+                archivedAt: null
+            },
+            {
+                returnDocument: "after",
+                runValidators: true
+            }
+        );
+
+        if (!enquiry) {
+            return res.status(404).json({
+                error: "Enquiry not found"
+            });
+        }
+
+        res.json(enquiry);
+    } catch (error) {
+        console.error("[RESTORE ERROR]", error.message);
+
+        res.status(500).json({
+            error: "Unable to restore enquiry"
+        });
+    }
+});
+
+// PERMANENTLY DELETE ARCHIVED ENQUIRY
+app.delete("/api/enquiries/:id", async (req, res) => {
+    try {
+        if (req.session.user.role !== "admin") {
+            return res.status(403).json({
+                error: "Administrator access required"
+            });
+        }
+
+        const enquiry = await Enquiry.findOneAndDelete({
+            $and: [
+                enquiryById(req),
+                { archived: true }
+            ]
+        });
+
+        if (!enquiry) {
+            return res.status(404).json({
+                error: "Archived enquiry not found"
+            });
+        }
+
+        console.log(`[ENQUIRY DELETED] ${enquiry._id}`);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("[DELETE ERROR]", error.message);
+
+        res.status(500).json({
+            error: "Unable to delete enquiry"
+        });
+    }
+});
+
+
 // START SERVER
 app.listen(PORT, () => {
     console.log(`MissedCall Rescue listening on port ${PORT}`);
