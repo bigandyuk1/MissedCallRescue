@@ -57,8 +57,24 @@ const client = twilio(
     process.env.TWILIO_AUTH_TOKEN
 );
 
+// TWILIO WEBHOOK SIGNATURE VERIFICATION
+// Twilio signs the public HTTPS URL, not localhost.
+
+const PUBLIC_WEBHOOK_BASE = "https://api.missedcallrescue.uk";
+
+if (!process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error("TWILIO_AUTH_TOKEN is required");
+}
+
+function verifyTwilioWebhook(route) {
+    return twilio.webhook({
+        validate: true,
+        url: `${PUBLIC_WEBHOOK_BASE}${route}`
+    });
+}
+
 // HUMAN TRANSFER TEST
-app.post("/test-human-transfer", (req, res) => {
+app.post("/test-human-transfer", verifyTwilioWebhook("/test-human-transfer"), (req, res) => {
     const response = new twilio.twiml.VoiceResponse();
 
     response.say(
@@ -79,7 +95,7 @@ app.post("/test-human-transfer", (req, res) => {
     res.send(response.toString());
 });
 
-app.post("/human-transfer-result", (req, res) => {
+app.post("/human-transfer-result", verifyTwilioWebhook("/human-transfer-result"), (req, res) => {
     const response = new twilio.twiml.VoiceResponse();
 
     if (req.body.DialCallStatus !== "completed") {
@@ -95,7 +111,7 @@ app.post("/human-transfer-result", (req, res) => {
 });
 
 // INCOMING CALL
-app.post("/incoming-call", async (req, res) => {
+app.post("/incoming-call", verifyTwilioWebhook("/incoming-call"), async (req, res) => {
     const caller = req.body.From || "Unknown caller";
     const calledNumber = req.body.To;
 
@@ -142,7 +158,7 @@ app.post("/incoming-call", async (req, res) => {
 });
 
 // INCOMING SMS
-app.post("/incoming-sms", async (req, res) => {
+app.post("/incoming-sms", verifyTwilioWebhook("/incoming-sms"), async (req, res) => {
     const from = req.body.From || "Unknown";
     const body = req.body.Body || "";
     const receivedNumber = req.body.To;
